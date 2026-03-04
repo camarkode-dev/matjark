@@ -1,0 +1,56 @@
+// Firestore Security Rules for متجرك marketplace
+// Roles supported: customer, seller, supplier, admin
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection: each user can read/write their own document
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Categories: only admin can modify
+    match /categories/{cat} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Products: sellers & suppliers can write their own, admin can moderate
+    match /products/{prod} {
+      allow read: if true;
+      allow create: if isSeller() || isSupplier();
+      allow update, delete: if (isSeller() && resource.data.sellerId == request.auth.uid) ||
+                            (isSupplier() && resource.data.supplierId == request.auth.uid) ||
+                            isAdmin();
+    }
+
+    // Orders: customers may create; involved parties can read/update status
+    match /orders/{orderId} {
+      allow create: if isCustomer();
+      allow read: if isAdmin() ||
+                  resource.data.customerId == request.auth.uid ||
+                  resource.data.sellerId == request.auth.uid ||
+                  resource.data.supplierId == request.auth.uid;
+      allow update: if isAdmin() ||
+                    (resource.data.sellerId == request.auth.uid && request.resource.data.status == 'shipped') ||
+                    (resource.data.supplierId == request.auth.uid && request.resource.data.status == 'shipped');
+    }
+
+    // Additional collections follow similar patterns...
+
+    function isAdmin() {
+      return request.auth.token.role == 'admin';
+    }
+    function isSeller() {
+      return request.auth.token.role == 'seller';
+    }
+    function isSupplier() {
+      return request.auth.token.role == 'supplier';
+    }
+    function isCustomer() {
+      return request.auth.token.role == 'customer';
+    }
+  }
+}
