@@ -1,6 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internet permission for Firebase -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- File access permissions for file picker -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!-- Camera permission for image picker -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Notification permissions for Firebase messaging -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
-        android:label="matjark"
+        android:label="متجرك"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

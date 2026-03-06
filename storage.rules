@@ -1,0 +1,50 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (
+          request.auth.token.admin == true ||
+          request.auth.token.role == 'admin' ||
+          request.auth.token.email == 'ca.matjark@gmail.com'
+        );
+    }
+
+    // Seller registration documents.
+    // Allowed for authenticated users to upload only under seller_documents/{uid}/...
+    match /seller_documents/{userId}/{allPaths=**} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create, update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|application/pdf');
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // Product/media uploads owned by sellers or admins.
+    match /product_images/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // Category images managed by admin.
+    match /category_images/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /offer_images/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Deny all other paths by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

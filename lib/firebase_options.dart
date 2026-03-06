@@ -37,44 +37,44 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDemoKeyForAndroidInitial',
-    appId: '1:000000000000:android:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    apiKey: 'AIzaSyA1pZHRdBCLywUwLKFCSLQnA7eIbKE6ZCk',
+    appId: '1:634105547193:android:20943036fecc5ca6624e68',
+    messagingSenderId: '634105547193',
+    projectId: 'matjark-7ebc7',
+    storageBucket: 'matjark-7ebc7.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDemoKeyForIosInitial',
     appId: '1:000000000000:ios:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    messagingSenderId: '634105547193',
+    projectId: 'matjark-7ebc7',
+    storageBucket: 'matjark-7ebc7.firebasestorage.app',
     iosBundleId: 'com.example.matjark',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDemoKeyForMacOsInitial',
     appId: '1:000000000000:macos:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    messagingSenderId: '634105547193',
+    projectId: 'matjark-7ebc7',
+    storageBucket: 'matjark-7ebc7.firebasestorage.app',
     iosBundleId: 'com.example.matjark',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyDemoKeyForWindowsInitial',
     appId: '1:000000000000:windows:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    messagingSenderId: '634105547193',
+    projectId: 'matjark-7ebc7',
+    storageBucket: 'matjark-7ebc7.firebasestorage.app',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(
     apiKey: 'AIzaSyDemoKeyForLinuxInitial',
     appId: '1:000000000000:linux:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project-id.appspot.com',
+    messagingSenderId: '634105547193',
+    projectId: 'matjark-7ebc7',
+    storageBucket: 'matjark-7ebc7.firebasestorage.app',
   );
 }

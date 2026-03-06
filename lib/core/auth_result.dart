@@ -1,25 +1,25 @@
 /// Result type for authentication operations.
-/// Either Success<T> or Failure<E>
+/// Either Success or Failure
 sealed class Result<S, F> {
   const Result();
 
   /// Get success value or null
   S? getOrNull() => switch (this) {
-    Success(value: final v) => v,
-    Failure() => null,
-  };
+        Success(value: final v) => v,
+        Failure() => null,
+      };
 
   /// Get failure value or null
   F? getErrorOrNull() => switch (this) {
-    Success() => null,
-    Failure(failure: final f) => f,
-  };
+        Success() => null,
+        Failure(failure: final f) => f,
+      };
 
   /// Map success to another type
   Result<T, F> map<T>(T Function(S) f) => switch (this) {
-    Success(value: final v) => Success(f(v)),
-    Failure(failure: final err) => Failure(err),
-  };
+        Success(value: final v) => Success(f(v)),
+        Failure(failure: final err) => Failure(err),
+      };
 
   /// Execute side effect on success
   Result<S, F> onSuccess(void Function(S) f) {
@@ -68,52 +68,67 @@ sealed class AuthFailure {
 
 final class AuthFailureEmailNotFound extends AuthFailure {
   @override
-  String get message => 'No account found with this email';
+  String get message => 'auth.errors.email_not_found';
 }
 
 final class AuthFailureWrongPassword extends AuthFailure {
   @override
-  String get message => 'Incorrect password';
+  String get message => 'auth.errors.wrong_password';
 }
 
 final class AuthFailureInvalidEmail extends AuthFailure {
   @override
-  String get message => 'Please enter a valid email address';
+  String get message => 'auth.errors.invalid_email';
 }
 
 final class AuthFailureWeakPassword extends AuthFailure {
   @override
-  String get message => 'Password must be at least 6 characters';
+  String get message => 'auth.errors.weak_password';
 }
 
 final class AuthFailureEmailInUse extends AuthFailure {
   @override
-  String get message => 'This email is already registered';
+  String get message => 'auth.errors.email_in_use';
 }
 
 final class AuthFailureUserDisabled extends AuthFailure {
   @override
-  String get message => 'This account has been disabled';
+  String get message => 'auth.errors.user_disabled';
 }
 
 final class AuthFailureInvalidPhoneNumber extends AuthFailure {
   @override
-  String get message => 'Invalid phone number';
+  String get message => 'auth.errors.invalid_phone_number';
 }
 
 final class AuthFailureTooManyRequests extends AuthFailure {
   @override
-  String get message => 'Too many attempts. Please try again later';
+  String get message => 'auth.errors.too_many_requests';
 }
 
 final class AuthFailureInvalidVerificationCode extends AuthFailure {
   @override
-  String get message => 'Invalid verification code';
+  String get message => 'auth.errors.invalid_verification_code';
 }
 
 final class AuthFailurePhoneVerificationFailed extends AuthFailure {
   @override
-  String get message => 'Phone verification failed. Please try again';
+  String get message => 'auth.errors.phone_verification_failed';
+}
+
+final class AuthFailureGoogleClientIdMissing extends AuthFailure {
+  @override
+  String get message => 'auth.errors.google_client_id_missing';
+}
+
+final class AuthFailurePhoneSetupRequired extends AuthFailure {
+  @override
+  String get message => 'auth.errors.phone_setup_required';
+}
+
+final class AuthFailureRecaptchaCheckFailed extends AuthFailure {
+  @override
+  String get message => 'auth.errors.recaptcha_check_failed';
 }
 
 final class AuthFailureNetwork extends AuthFailure {
@@ -122,7 +137,8 @@ final class AuthFailureNetwork extends AuthFailure {
   AuthFailureNetwork([this.details]);
 
   @override
-  String get message => 'Network error. Please check your connection';
+  String get message =>
+      _normalizeAuthMessageKey(details, 'auth.errors.network');
 }
 
 final class AuthFailureUnknown extends AuthFailure {
@@ -131,5 +147,13 @@ final class AuthFailureUnknown extends AuthFailure {
   AuthFailureUnknown([this.details]);
 
   @override
-  String get message => details ?? 'An unexpected error occurred';
+  String get message =>
+      _normalizeAuthMessageKey(details, 'auth.errors.unexpected');
+}
+
+String _normalizeAuthMessageKey(String? details, String fallback) {
+  final value = details?.trim();
+  if (value == null || value.isEmpty) return fallback;
+  if (value.startsWith('auth.')) return value;
+  return fallback;
 }

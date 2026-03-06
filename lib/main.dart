@@ -1,5 +1,9 @@
+import 'dart:ui' as ui;
+
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,46 +12,66 @@ import 'core/constants.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/role_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/auth/forgot_password_screen.dart';
+import 'screens/auth/otp_verification_screen.dart';
 import 'screens/customer/main_screen.dart';
+import 'screens/customer/categories_screen.dart';
+import 'screens/customer/settings_screen.dart';
+import 'screens/customer/order_tracking_screen.dart';
+import 'screens/customer/seller_center_screen.dart';
+import 'screens/customer/notifications_screen.dart';
 import 'screens/seller/seller_dashboard.dart';
+import 'screens/seller/seller_waiting_approval_screen.dart';
 import 'screens/supplier/supplier_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'core/firebase_status.dart' as fs;
+import 'widgets/role_guard.dart';
+import 'models/user_model.dart';
 
+const _supportedLocales = <Locale>[Locale('ar'), Locale('en')];
+const _fallbackLocale = Locale('ar');
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await EasyLocalization.ensureInitialized();
 
+  var firebaseInitialized = false;
+
+  // Initialize Firebase safely and allow app boot even if initialization fails.
   try {
-    
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    fs.setFirebaseAvailable(true);
-    debugPrint('✓ Firebase initialized successfully on ${DefaultFirebaseOptions.currentPlatform.projectId}');
-  } catch (e) {
-    debugPrint('✗ Firebase initialization failed: $e');
-    debugPrint('  [INFO] Run: flutterfire configure');
-    fs.setFirebaseAvailable(false);
-    // App continues gracefully - UI works but Firebase calls will be guarded
+    if (kIsWeb) {
+      await firebase_auth.FirebaseAuth.instance.setPersistence(
+        firebase_auth.Persistence.SESSION,
+      );
+    }
+    firebaseInitialized = true;
+    debugPrint('[Firebase] initialized successfully.');
+  } catch (e, stackTrace) {
+    debugPrint('[Firebase] initialization failed: $e');
+    debugPrint('[Firebase] stacktrace: $stackTrace');
+    debugPrint('[Firebase] Check Firebase config via: flutterfire configure');
   }
+  fs.setFirebaseAvailable(firebaseInitialized);
 
   runApp(
     EasyLocalization(
-      supportedLocales: const [Locale('ar'), Locale('en')],
+      supportedLocales: _supportedLocales,
       path: 'assets/translations',
-      fallbackLocale: const Locale('ar'),
+      fallbackLocale: _fallbackLocale,
+      startLocale: _fallbackLocale,
+      saveLocale: true,
       child: const MyApp(),
     ),
   );
 }
 
-/// Main application widget with complete provider setup and routing
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -55,48 +79,126 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Primary auth provider - manages user authentication state
+        // Auth state management
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
-        // Role-based routing provider - syncs with AuthProvider
-        // Updates whenever AuthProvider.currentUser changes
+        // Theme management
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider()..loadSavedThemeMode(),
+        ),
+
+        // Role-based routing, synced with AuthProvider
         ChangeNotifierProxyProvider<AuthProvider, RoleProvider>(
           create: (_) => RoleProvider(),
-          update: (_, authProvider, roleProv) {
-            roleProv ??= RoleProvider();
-            roleProv.updateFromUserRole(authProvider.currentUser?.role);
-            return roleProv;
+          update: (_, authProvider, previousRoleProvider) {
+            final roleProvider = previousRoleProvider ?? RoleProvider();
+            roleProvider.updateFromUserRole(authProvider.currentUser?.role);
+            return roleProvider;
           },
         ),
       ],
-      child: MaterialApp(
-        // Disable debug banner in production
-        debugShowCheckedModeBanner: false,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          final locale = context.locale;
+          final isArabic = locale.languageCode == 'ar';
 
-        // App title for task switcher / system UI
-        title: AppStrings.appTitle,
-
-        // Easy Localization integration
-        locale: context.locale,
-        supportedLocales: context.supportedLocales,
-        localizationsDelegates: context.localizationDelegates,
-
-        // Theme configuration (Material 3 compliant, supports Light/Dark)
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light, // Change to ThemeMode.system for device preference
-
-        // Initial home screen (splash before auth check)
-        home: const SplashScreen(),
-
-        // Named routes for all role-based dashboards
-        routes: {
-          '/login': (_) => const LoginScreen(),
-          '/register': (_) => const RegisterScreen(),
-          '/customer': (_) => const CustomerMainScreen(),
-          '/seller': (_) => const SellerDashboard(),
-          '/supplier': (_) => const SupplierDashboard(),
-          '/admin': (_) => const AdminDashboard(),
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: AppStrings.appTitle,
+            locale: locale,
+            supportedLocales: context.supportedLocales,
+            localizationsDelegates: context.localizationDelegates,
+            localeResolutionCallback: (deviceLocale, supportedLocales) {
+              if (deviceLocale == null) return _fallbackLocale;
+              for (final supportedLocale in supportedLocales) {
+                if (supportedLocale.languageCode == deviceLocale.languageCode) {
+                  return supportedLocale;
+                }
+              }
+              return _fallbackLocale;
+            },
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const SplashScreen(),
+            routes: {
+              '/login': (_) => const LoginScreen(),
+              '/register': (_) => const RegisterScreen(),
+              '/forgot-password': (_) => const ForgotPasswordScreen(),
+              '/otp-login': (_) => const OtpVerificationScreen(),
+              '/customer': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CustomerMainScreen(),
+                  ),
+              '/customer/categories': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CategoriesScreen(),
+                  ),
+              '/customer/cart': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CustomerMainScreen(initialIndex: 1),
+                  ),
+              '/customer/orders': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CustomerMainScreen(initialIndex: 2),
+                  ),
+              '/customer/favorites': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CustomerMainScreen(initialIndex: 3),
+                  ),
+              '/customer/profile': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: CustomerMainScreen(initialIndex: 4),
+                  ),
+              '/customer/settings': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: SettingsScreen(),
+                  ),
+              '/customer/tracking': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.customer, UserRole.seller},
+                    child: OrderTrackingScreen(),
+                  ),
+              '/customer/seller-center': (_) => const RoleGuard(
+                    allowedRoles: {
+                      UserRole.customer,
+                      UserRole.seller,
+                      UserRole.admin,
+                    },
+                    child: SellerCenterScreen(),
+                  ),
+              '/customer/notifications': (_) => const RoleGuard(
+                    allowedRoles: {
+                      UserRole.customer,
+                      UserRole.seller,
+                      UserRole.admin,
+                    },
+                    child: NotificationsScreen(),
+                  ),
+              '/seller': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.seller},
+                    child: SellerDashboard(),
+                  ),
+              '/seller/waiting': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.seller, UserRole.customer},
+                    child: SellerWaitingApprovalScreen(),
+                  ),
+              '/supplier': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.supplier},
+                    child: SupplierDashboard(),
+                  ),
+              '/admin': (_) => const RoleGuard(
+                    allowedRoles: {UserRole.admin},
+                    child: AdminDashboard(),
+                  ),
+            },
+            builder: (context, child) {
+              return Directionality(
+                textDirection:
+                    isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+          );
         },
       ),
     );

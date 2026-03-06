@@ -15,15 +15,19 @@ class Category {
     required this.createdAt,
   });
 
+  factory Category.fromMap(Map<String, dynamic> map, String id) {
+    return Category(
+      id: id,
+      nameAr: map['nameAr'] ?? '',
+      nameEn: map['nameEn'] ?? '',
+      imageUrl: map['imageUrl'],
+      createdAt: map['createdAt'] ?? Timestamp.now(),
+    );
+  }
+
   factory Category.fromDoc(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return Category(
-      id: doc.id,
-      nameAr: data['nameAr'],
-      nameEn: data['nameEn'],
-      imageUrl: data['imageUrl'],
-      createdAt: data['createdAt'],
-    );
+    return Category.fromMap(data, doc.id);
   }
 
   Map<String, dynamic> toMap() => {
@@ -32,4 +36,6 @@ class Category {
         'imageUrl': imageUrl,
         'createdAt': createdAt,
       };
+
+  String get name => nameAr; // For simplicity, return Arabic name
 }

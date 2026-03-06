@@ -4,26 +4,35 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../core/theme.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'cart_screen.dart';
+import 'orders_screen.dart';
+import 'favorites_screen.dart';
 
 class CustomerMainScreen extends StatefulWidget {
-  const CustomerMainScreen({super.key});
+  final int initialIndex;
+
+  const CustomerMainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<CustomerMainScreen> createState() => _CustomerMainScreenState();
 }
 
 class _CustomerMainScreenState extends State<CustomerMainScreen> {
-  int _selected = 0;
+  late int _selected;
 
-  // maintain page widgets; `const` where possible to avoid rebuild cost
-  final List<Widget> _pages = <Widget>[
-    const CustomerHomeScreen(),
-    const Center(child: Text('Cart')), // todo
-    const Center(child: Text('Orders')), // todo
-    const Center(child: Text('Favorites')), // todo
-    const ProfileScreen(),
-    const CustomerHomeScreen(),
-  ];
+  List<Widget> get _pages => const <Widget>[
+        CustomerHomeScreen(),
+        CartScreen(),
+        OrdersScreen(),
+        FavoritesScreen(),
+        ProfileScreen(),
+      ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialIndex.clamp(0, _pages.length - 1);
+  }
 
   void _onTab(int index) {
     setState(() {
@@ -34,42 +43,50 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.scaffold(context),
       body: _pages[_selected],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selected,
-        onTap: _onTab,
-        elevation: AppTheme.elevationMedium,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppTheme.primary,
-        unselectedItemColor: AppTheme.textSecondary,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_outlined),
-            activeIcon: const Icon(Icons.home),
-            label: 'home'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            activeIcon: const Icon(Icons.shopping_cart),
-            label: 'cart'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.receipt_outlined),
-            activeIcon: const Icon(Icons.receipt),
-            label: 'orders'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.favorite_outline),
-            activeIcon: const Icon(Icons.favorite),
-            label: 'favorites'.tr(),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            activeIcon: const Icon(Icons.person),
-            label: 'profile'.tr(),
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.panel(context),
+          border: Border(top: BorderSide(color: AppTheme.border(context))),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selected,
+          onTap: _onTab,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppTheme.primary,
+          unselectedItemColor: AppTheme.textHint,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          items: [
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: 'nav.home'.tr(),
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.shopping_cart_outlined),
+              activeIcon: const Icon(Icons.shopping_cart),
+              label: 'nav.cart'.tr(),
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.receipt_outlined),
+              activeIcon: const Icon(Icons.receipt),
+              label: 'nav.orders'.tr(),
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.favorite_outline),
+              activeIcon: const Icon(Icons.favorite),
+              label: 'nav.favorites'.tr(),
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: 'nav.profile'.tr(),
+            ),
+          ],
+        ),
       ),
     );
   }

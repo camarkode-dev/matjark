@@ -1,3 +1,11 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    // application plugin is applied in the app module below
+    id("com.android.application") apply false
+    // Google Services plugin to enable Firebase Gradle tasks
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
+
 allprojects {
     repositories {
         google()

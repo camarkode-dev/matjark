@@ -1,16 +1,14 @@
 import 'dart:async';
 
+import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// role_provider import not required here
+import '../core/firebase_status.dart' as fs;
 import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
+import '../providers/theme_provider.dart';
 import 'auth/login_screen.dart';
-import 'customer/main_screen.dart';
-import 'seller/seller_dashboard.dart';
-import 'supplier/supplier_dashboard.dart';
-import 'admin/admin_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,38 +18,57 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _navigated = false;
+  int _retryCount = 0;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), _navigate);
+    Timer(const Duration(milliseconds: 300), _navigate);
   }
 
   void _navigate() {
+    if (_navigated || !mounted) return;
     final authProvider = context.read<AuthProvider>();
-    Widget next = const SizedBox.shrink();
-    if (!authProvider.isSignedIn || authProvider.currentUser == null) {
-      next = const LoginScreen();
-    } else {
-      final role = authProvider.currentUser!.role;
-      switch (role) {
-        case UserRole.customer:
-          next = const CustomerMainScreen();
-          break;
-        case UserRole.seller:
-          next = const SellerDashboard();
-          break;
-        case UserRole.supplier:
-          next = const SupplierDashboard();
-          break;
-        case UserRole.admin:
-          next = const AdminDashboard();
-          break;
-        case UserRole.guest:
-          next = const LoginScreen();
-          break;
-      }
+    final hasFirebaseSession = fs.firebaseAvailable
+        ? firebase_auth.FirebaseAuth.instance.currentUser != null
+        : false;
+
+    // Give auth provider a short time to hydrate profile from Firestore.
+    if (authProvider.currentUser == null &&
+        hasFirebaseSession &&
+        _retryCount < 5) {
+      _retryCount += 1;
+      Timer(const Duration(milliseconds: 250), _navigate);
+      return;
     }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => next));
+
+    if (!authProvider.isSignedIn || authProvider.currentUser == null) {
+      _navigated = true;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    final user = authProvider.currentUser!;
+    if (user.language == 'en' && context.locale.languageCode != 'en') {
+      context.setLocale(const Locale('en'));
+    } else if (user.language == 'ar' && context.locale.languageCode != 'ar') {
+      context.setLocale(const Locale('ar'));
+    }
+    final themeProvider = context.read<ThemeProvider>();
+    if (user.themeMode == 'dark') {
+      themeProvider.setThemeMode(ThemeMode.dark);
+    } else if (user.themeMode == 'system') {
+      themeProvider.setThemeMode(ThemeMode.system);
+    } else {
+      themeProvider.setThemeMode(ThemeMode.light);
+    }
+
+    final targetRoute = authProvider.landingRoute;
+    _navigated = true;
+    Navigator.of(context).pushReplacementNamed(targetRoute);
   }
 
   @override
@@ -59,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Center(
         child: Text(
-          'متجرك',
+          'app.title'.tr(),
           style: Theme.of(context).textTheme.headlineLarge,
         ),
       ),

@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isVendor() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
+    }
+
+    function isUser() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read and update their own data
+      allow read, update: if isOwner(userId);
+      // Admins can read and update all users
+      allow read, update: if isAdmin();
+      // Allow create for registration
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Vendors collection
+    match /vendors/{vendorId} {
+      // Vendors can read and update their own data
+      allow read, update: if isOwner(vendorId) && isVendor();
+      // Admins can read and update all vendors
+      allow read, update: if isAdmin();
+      // Allow create for vendor registration
+      allow create: if request.auth != null && request.auth.uid == vendorId && isVendor();
+    }
+
+    // Products collection
+    match /products/{productId} {
+      // Everyone can read approved products
+      allow read: if resource.data.status == 'approved' || isAdmin() || (isVendor() && isOwner(resource.data.vendorId));
+      // Vendors can create and update their own products
+      allow create, update: if isVendor() && isOwner(resource.data.vendorId);
+      // Admins can do everything
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Orders collection
+    match /orders/{orderId} {
+      // Users can read their own orders
+      allow read: if isOwner(resource.data.userId);
+      // Vendors can read orders containing their products
+      allow read: if isVendor() && resource.data.items.hasAny(item => item.vendorId == request.auth.uid);
+      // Users can create orders
+      allow create: if isUser() && isOwner(resource.data.userId);
+      // Admins can read all orders
+      allow read, update: if isAdmin();
+    }
+
+    // Returns collection
+    match /returns/{returnId} {
+      // Users can read and create their own returns
+      allow read, create: if isOwner(resource.data.userId);
+      // Admins can read and update all returns
+      allow read, update: if isAdmin();
+    }
+  }
+}

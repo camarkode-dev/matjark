@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "634105547193",
+    "project_id": "matjark-7ebc7",
+    "storage_bucket": "matjark-7ebc7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634105547193:android:20943036fecc5ca6624e68",
+        "android_client_info": {
+          "package_name": "com.example.matjark"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1pZHRdBCLywUwLKFCSLQnA7eIbKE6ZCk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

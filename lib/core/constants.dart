@@ -3,8 +3,6 @@ library;
 
 import 'theme.dart';
 
-/// Centralized app constants for colors, strings, durations, etc.
-
 class AppColors {
   // Use the professional color system from AppTheme
   static const primary = AppTheme.primary;
@@ -24,5 +22,9 @@ class AppColors {
 }
 
 class AppStrings {
-  static const appTitle = 'متجرك';
+  static const appTitle = 'Matjark';
+  static const adminEmail = String.fromEnvironment(
+    'MATJARK_ADMIN_EMAIL',
+    defaultValue: 'ca.matjark@gmail.com',
+  );
 }

@@ -1,56 +1,237 @@
-// Firestore Security Rules for متجرك marketplace
-// Roles supported: customer, seller, supplier, admin
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users collection: each user can read/write their own document
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Categories: only admin can modify
-    match /categories/{cat} {
-      allow read: if true;
-      allow write: if isAdmin();
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
-
-    // Products: sellers & suppliers can write their own, admin can moderate
-    match /products/{prod} {
-      allow read: if true;
-      allow create: if isSeller() || isSupplier();
-      allow update, delete: if (isSeller() && resource.data.sellerId == request.auth.uid) ||
-                            (isSupplier() && resource.data.supplierId == request.auth.uid) ||
-                            isAdmin();
-    }
-
-    // Orders: customers may create; involved parties can read/update status
-    match /orders/{orderId} {
-      allow create: if isCustomer();
-      allow read: if isAdmin() ||
-                  resource.data.customerId == request.auth.uid ||
-                  resource.data.sellerId == request.auth.uid ||
-                  resource.data.supplierId == request.auth.uid;
-      allow update: if isAdmin() ||
-                    (resource.data.sellerId == request.auth.uid && request.resource.data.status == 'shipped') ||
-                    (resource.data.supplierId == request.auth.uid && request.resource.data.status == 'shipped');
-    }
-
-    // Additional collections follow similar patterns...
 
     function isAdmin() {
-      return request.auth.token.role == 'admin';
+      return isSignedIn() &&
+        (
+          request.auth.token.admin == true ||
+          request.auth.token.role == 'admin' ||
+          request.auth.token.email == 'ca.matjark@gmail.com' ||
+          profileRole() == 'admin'
+        );
     }
+
+    function hasProfile() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function profileRole() {
+      return hasProfile() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role is string
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'customer';
+    }
+
+    function tokenRole() {
+      return isSignedIn() && request.auth.token.role is string
+        ? request.auth.token.role
+        : null;
+    }
+
+    function role() {
+      return tokenRole() != null ? tokenRole() : profileRole();
+    }
+
     function isSeller() {
-      return request.auth.token.role == 'seller';
+      return role() == 'seller';
     }
-    function isSupplier() {
-      return request.auth.token.role == 'supplier';
-    }
+
     function isCustomer() {
-      return request.auth.token.role == 'customer';
+      return role() == 'customer';
+    }
+
+    function tokenApproved() {
+      return isSignedIn() && request.auth.token.isApproved == true;
+    }
+
+    function profileApproved() {
+      return hasProfile() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true;
+    }
+
+    function isApprovedSeller() {
+      return isSeller() && (tokenApproved() || profileApproved());
+    }
+
+    function isOrderParticipant(orderData) {
+      return isAdmin() || (
+        isSignedIn() &&
+        (
+          orderData.customerId == request.auth.uid ||
+          orderData.sellerId == request.auth.uid ||
+          orderData.supplierId == request.auth.uid
+        )
+      );
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isAdmin();
+
+      allow create: if isSelf(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.role in ['customer', 'seller', 'admin'] &&
+        request.resource.data.language in ['ar', 'en'];
+
+      allow update: if isAdmin() || (
+        isSelf(userId) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.isApproved == resource.data.isApproved &&
+        request.resource.data.createdAt == resource.data.createdAt
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // New canonical flow for seller onboarding.
+    match /seller_requests/{requestId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.merchant_name is string &&
+        request.resource.data.store_name is string &&
+        request.resource.data.phone_number is string &&
+        request.resource.data.national_id_image is string;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Backward compatibility with old collection name.
+    match /seller_applications/{applicationId} {
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings_pages/{pageId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if resource.data.isApproved == true ||
+        isAdmin() ||
+        (isSignedIn() && resource.data.sellerId == request.auth.uid);
+
+      allow create: if isAdmin() || (
+        isApprovedSeller() &&
+        request.resource.data.sellerId == request.auth.uid
+      );
+
+      allow update, delete: if isAdmin() || (
+        isSignedIn() && resource.data.sellerId == request.auth.uid
+      );
+    }
+
+    match /orders/{orderId} {
+      allow create: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending'
+      );
+      allow read: if isOrderParticipant(resource.data);
+      allow update: if isAdmin() || isOrderParticipant(resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /returns/{returnId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+      allow read: if isAdmin() || (
+        isSignedIn() &&
+        (
+          resource.data.customerId == request.auth.uid ||
+          resource.data.sellerId == request.auth.uid ||
+          resource.data.supplierId == request.auth.uid
+        )
+      );
+      allow update, delete: if isAdmin() || (
+        isSignedIn() &&
+        (
+          resource.data.customerId == request.auth.uid ||
+          resource.data.sellerId == request.auth.uid
+        )
+      );
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if isAdmin();
+      allow read, update: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Required by spec.
+    match /coupons/{couponId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Backward compatibility.
+    match /discount_codes/{codeId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /offers/{offerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /carts/{userId} {
+      allow read, create, update, delete: if isSelf(userId) || isAdmin();
+      match /items/{itemId} {
+        allow read, create, update, delete: if isSelf(userId) || isAdmin();
+      }
+    }
+
+    match /payments/{paymentId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+      allow read: if isAdmin() || (
+        isSignedIn() && resource.data.customerId == request.auth.uid
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /commissions/{commissionId} {
+      allow read: if isAdmin() || (
+        isSignedIn() &&
+        (
+          resource.data.sellerId == request.auth.uid ||
+          resource.data.supplierId == request.auth.uid
+        )
+      );
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /admin_reports/{reportId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /mail_queue/{mailId} {
+      allow read, write: if false;
     }
   }
 }

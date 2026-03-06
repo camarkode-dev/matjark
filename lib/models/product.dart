@@ -15,6 +15,8 @@ class Product {
   final bool isApproved;
   final String sellerId;
   final String? supplierId;
+  final String? categoryId;
+  final int salesCount;
   final Timestamp createdAt;
 
   Product({
@@ -32,6 +34,8 @@ class Product {
     required this.isApproved,
     required this.sellerId,
     this.supplierId,
+    this.categoryId,
+    this.salesCount = 0,
     required this.createdAt,
   });
 
@@ -52,24 +56,28 @@ class Product {
       isApproved: data['isApproved'] ?? false,
       sellerId: data['sellerId'],
       supplierId: data['supplierId'],
+      categoryId: data['categoryId'] as String?,
+      salesCount: (data['salesCount'] ?? 0) as int,
       createdAt: data['createdAt'],
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'titleAr': titleAr,
-        'titleEn': titleEn,
-        'descriptionAr': descriptionAr,
-        'descriptionEn': descriptionEn,
-        'costPrice': costPrice,
-        'sellingPrice': sellingPrice,
-        'commissionAmount': commissionAmount,
-        'stock': stock,
-        'images': images,
-        'rating': rating,
-        'isApproved': isApproved,
-        'sellerId': sellerId,
-        'supplierId': supplierId,
-        'createdAt': createdAt,
-      };
+    'titleAr': titleAr,
+    'titleEn': titleEn,
+    'descriptionAr': descriptionAr,
+    'descriptionEn': descriptionEn,
+    'costPrice': costPrice,
+    'sellingPrice': sellingPrice,
+    'commissionAmount': commissionAmount,
+    'stock': stock,
+    'images': images,
+    'rating': rating,
+    'isApproved': isApproved,
+    'sellerId': sellerId,
+    'supplierId': supplierId,
+    'categoryId': categoryId,
+    'salesCount': salesCount,
+    'createdAt': createdAt,
+  };
 }

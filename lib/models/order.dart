@@ -3,10 +3,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum OrderStatus {
   pending,
   processing,
-  sentToSeller,
   shipped,
   delivered,
   returned,
+}
+
+OrderStatus orderStatusFromFirestore(String? value) {
+  switch (value) {
+    case 'processing':
+    case 'confirmed':
+    case 'sent_to_vendor':
+    case 'sentToSeller':
+      return OrderStatus.processing;
+    case 'shipped':
+      return OrderStatus.shipped;
+    case 'delivered':
+      return OrderStatus.delivered;
+    case 'returned':
+      return OrderStatus.returned;
+    case 'pending':
+    default:
+      return OrderStatus.pending;
+  }
+}
+
+String orderStatusToFirestore(OrderStatus status) {
+  switch (status) {
+    case OrderStatus.pending:
+      return 'pending';
+    case OrderStatus.processing:
+      return 'processing';
+    case OrderStatus.shipped:
+      return 'shipped';
+    case OrderStatus.delivered:
+      return 'delivered';
+    case OrderStatus.returned:
+      return 'returned';
+  }
 }
 
 class OrderItem {
@@ -38,8 +71,11 @@ class Order {
   final String? supplierId;
   final List<OrderItem> items;
   final String paymentMethod;
+  final String paymentStatus;
   final OrderStatus status;
   final double totalAmount;
+  final double platformFee;
+  final double sellerRevenue;
   final double commissionAmount;
   final String? trackingNumber;
   final Timestamp createdAt;
@@ -51,9 +87,12 @@ class Order {
     this.supplierId,
     required this.items,
     required this.paymentMethod,
+    this.paymentStatus = 'pending',
     required this.status,
     required this.totalAmount,
-    required this.commissionAmount,
+    this.platformFee = 0,
+    this.sellerRevenue = 0,
+    this.commissionAmount = 0,
     this.trackingNumber,
     required this.createdAt,
   });
@@ -69,10 +108,17 @@ class Order {
           .map((e) => OrderItem.fromMap(e as Map<String, dynamic>))
           .toList(),
       paymentMethod: data['paymentMethod'],
-      status: OrderStatus.values.firstWhere(
-          (e) => e.toString().split('.').last == data['status']),
+      paymentStatus: (data['paymentStatus'] ?? 'pending').toString(),
+      status: orderStatusFromFirestore(data['status'] as String?),
       totalAmount: (data['totalAmount'] ?? 0).toDouble(),
-      commissionAmount: (data['commissionAmount'] ?? 0).toDouble(),
+      platformFee: (data['platform_fee'] ?? data['commission'] ?? 0).toDouble(),
+      sellerRevenue: (data['seller_revenue'] ?? data['sellerEarnings'] ?? 0)
+          .toDouble(),
+      commissionAmount: (data['commissionAmount'] ??
+              data['commission'] ??
+              data['platform_fee'] ??
+              0)
+          .toDouble(),
       trackingNumber: data['trackingNumber'],
       createdAt: data['createdAt'],
     );
@@ -84,8 +130,11 @@ class Order {
         'supplierId': supplierId,
         'items': items.map((e) => e.toMap()).toList(),
         'paymentMethod': paymentMethod,
-        'status': status.toString().split('.').last,
+        'paymentStatus': paymentStatus,
+        'status': orderStatusToFirestore(status),
         'totalAmount': totalAmount,
+        'platform_fee': platformFee,
+        'seller_revenue': sellerRevenue,
         'commissionAmount': commissionAmount,
         'trackingNumber': trackingNumber,
         'createdAt': createdAt,
