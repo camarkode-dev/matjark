@@ -5,27 +5,34 @@
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-  <meta name="description" content="A new Flutter project.">
-
+  <meta name="description" content="Matjark marketplace">
   <meta name="google-signin-client_id" content="634105547193-e56somcbuj37vbrrguu96sracs5ru7ee.apps.googleusercontent.com">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="matjark">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <!-- Google Identity Services (GSI) for Web -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* FlutterFire creates this container automatically for invisible web OTP flows. */
+    #__ff-recaptcha-container {
+      position: fixed !important;
+      left: -10000px !important;
+      top: auto !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+      z-index: -1 !important;
+    }
+  </style>
 
   <title>matjark</title>
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <!-- Flutter Web Bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

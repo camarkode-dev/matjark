@@ -1,6 +1,16 @@
 {
   "functions": {
-    "source": "functions"
+    "source": "functions",
+    "runtime": "nodejs20",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ],
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ]
   },
   "firestore": {
     "rules": "firestore.rules",
@@ -16,6 +26,39 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          },
+          {
+            "key": "Cross-Origin-Embedder-Policy",
+            "value": "unsafe-none"
+          }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css|png|jpg|jpeg|svg|webp|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "**",
@@ -24,21 +67,25 @@
     ]
   },
   "emulators": {
+    "singleProjectMode": true,
     "auth": {
       "port": 9099
     },
     "firestore": {
-      "port": 9090
+      "port": 8080
     },
     "functions": {
-      "port": 9091
+      "port": 5001
     },
     "hosting": {
-      "port": 9092
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
     },
     "ui": {
       "enabled": true,
-      "port": 9093
+      "port": 4000
     }
   }
 }

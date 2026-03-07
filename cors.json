@@ -1,0 +1,35 @@
+[
+  {
+    "origin": [
+      "https://matjark-7ebc7.web.app",
+      "https://matjark-7ebc7.firebaseapp.com",
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://localhost:8080",
+      "http://localhost:8232",
+      "http://localhost:59434",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:8080",
+      "http://127.0.0.1:8232",
+      "http://127.0.0.1:59434"
+    ],
+    "method": [
+      "GET",
+      "HEAD",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "x-goog-resumable",
+      "x-goog-meta-ownerUid",
+      "Cache-Control"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

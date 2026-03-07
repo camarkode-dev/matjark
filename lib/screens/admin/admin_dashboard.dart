@@ -13,9 +13,12 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme.dart';
+import '../../core/order_workflow.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/admin_service.dart';
 import '../../services/media_upload_service.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
+import '../../widgets/remote_image.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -39,7 +42,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   late final Stream<int> _productsCountStream;
   late final Stream<int> _ordersCountStream;
   late final Stream<int> _returnsCountStream;
-  late final Stream<int> _commissionsCountStream;
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _usersStream;
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _discountCodesStream;
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _offersStream;
@@ -49,6 +51,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   late Stream<QuerySnapshot<Map<String, dynamic>>> _returnsStream;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _notificationsStream;
   bool _seedingDemo = false;
+  static const int _previewCount = 3;
   int _productsLimit = 20;
   int _ordersLimit = 20;
   int _returnsLimit = 20;
@@ -60,7 +63,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _notificationsStream = FirebaseFirestore.instance
         .collection('admin_broadcasts')
         .orderBy('createdAt', descending: true)
-        .limit(30)
         .snapshots();
     _loadPendingSellers(reset: true);
     _advancedStatsFuture = _loadAdvancedStats();
@@ -79,26 +81,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _productsCountStream = _count(db.collection('products'));
     _ordersCountStream = _count(db.collection('orders'));
     _returnsCountStream = _count(db.collection('returns'));
-    _commissionsCountStream = _count(db.collection('commissions'));
     _usersStream = db
         .collection('users')
         .orderBy('createdAt', descending: true)
-        .limit(30)
         .snapshots();
     _discountCodesStream = db
         .collection('coupons')
         .orderBy('createdAt', descending: true)
-        .limit(30)
         .snapshots();
     _offersStream = db
         .collection('offers')
         .orderBy('createdAt', descending: true)
-        .limit(30)
         .snapshots();
     _categoriesStream = db
         .collection('categories')
         .orderBy('createdAt', descending: true)
-        .limit(30)
         .snapshots();
     _refreshPagedStreams();
   }
@@ -108,17 +105,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _productsStream = db
         .collection('products')
         .orderBy('createdAt', descending: true)
-        .limit(_productsLimit)
         .snapshots();
     _ordersStream = db
         .collection('orders')
         .orderBy('createdAt', descending: true)
-        .limit(_ordersLimit)
         .snapshots();
     _returnsStream = db
         .collection('returns')
         .orderBy('createdAt', descending: true)
-        .limit(_returnsLimit)
         .snapshots();
   }
 
@@ -258,7 +252,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .limit(500)
           .get();
 
-      double revenue = 0;
+      double totalSales = 0;
+      double platformRevenue = 0;
       int active = 0;
       final sellerTotals = <String, double>{};
       final categoryTotals = <String, double>{};
@@ -267,13 +262,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
         final data = doc.data();
         final status = (data['status'] ?? '').toString();
         final total = ((data['totalAmount'] ?? 0) as num).toDouble();
-        if (status == 'pending' ||
-            status == 'processing' ||
-            status == 'shipped') {
+        if (isActiveOrderStatus(status)) {
           active++;
         }
-        if (status == 'delivered') {
-          revenue += total;
+        if (normalizeOrderStatus(status) == 'delivered') {
+          totalSales += total;
+          platformRevenue += ((data['platform_fee'] ??
+                      data['commission'] ??
+                      (total * 0.02)) as num)
+                  .toDouble();
           final sellerId = (data['sellerId'] ?? '').toString();
           if (sellerId.isNotEmpty) {
             sellerTotals[sellerId] = (sellerTotals[sellerId] ?? 0) + total;
@@ -297,7 +294,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ..sort((a, b) => b.value.compareTo(a.value));
 
       return _AdvancedStats(
-        totalRevenue: revenue,
+        totalRevenue: totalSales,
+        platformRevenue: platformRevenue,
         activeOrders: active,
         topSellers: topSellers.take(5).toList(),
         topCategories: topCategories.take(5).toList(),
@@ -305,6 +303,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     } catch (e) {
       return const _AdvancedStats(
         totalRevenue: 0,
+        platformRevenue: 0,
         activeOrders: 0,
         topSellers: [],
         topCategories: [],
@@ -375,12 +374,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
 
     if (submit != true) return;
+    if (!mounted) return;
     final code = codeController.text.trim().toUpperCase();
     if (code.isEmpty) return;
+    final numericValue = double.tryParse(valueController.text.trim()) ?? 0;
+    final isArabic = context.locale.languageCode == 'ar';
     await FirebaseFirestore.instance.collection('coupons').doc(code).set({
       'code': code,
       'type': type,
-      'value': double.tryParse(valueController.text.trim()) ?? 0,
+      'value': numericValue,
       'minOrder': 0,
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
@@ -392,12 +394,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
         .set({
       'code': code,
       'type': type,
-      'value': double.tryParse(valueController.text.trim()) ?? 0,
+      'value': numericValue,
       'minOrder': 0,
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    final recipientCount = await _adminService.createBroadcastNotification(
+      title: isArabic
+          ? 'كود خصم جديد: $code'
+          : 'New discount code: $code',
+      body: isArabic
+          ? 'تمت إضافة كود خصم جديد بقيمة ${numericValue.toStringAsFixed(numericValue % 1 == 0 ? 0 : 1)} ${type == 'percent' ? '%' : 'EGP'}.'
+          : 'A new discount code worth ${numericValue.toStringAsFixed(numericValue % 1 == 0 ? 0 : 1)} ${type == 'percent' ? '%' : 'EGP'} is now available.',
+      type: 'promo.discount_code',
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isArabic
+              ? 'تم حفظ كود الخصم وإرساله إلى $recipientCount حساب.'
+              : 'Discount code saved and sent to $recipientCount accounts.',
+        ),
+      ),
+    );
   }
 
   Future<void> _addOffer() async {
@@ -440,13 +461,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 if (uploadedImageUrl != null && uploadedImageUrl!.isNotEmpty)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      uploadedImageUrl!,
+                    child: RemoteImage(
+                      imageUrl: uploadedImageUrl!,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: Container(
                         height: 120,
                         color: AppTheme.panelSoft(context),
                         alignment: Alignment.center,
@@ -530,7 +550,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         uploadedImageUrl!.trim().isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete the offer data and upload an image.')),
+        const SnackBar(
+            content:
+                Text('Please complete the offer data and upload an image.')),
       );
       return;
     }
@@ -539,6 +561,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       'titleEn': en.text.trim(),
       'discountPercent': double.tryParse(discount.text.trim()) ?? 0,
       'imageUrl': uploadedImageUrl!.trim(),
+      'bannerUrl': uploadedImageUrl!.trim(),
+      'images': <String>[uploadedImageUrl!.trim()],
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -574,9 +598,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
         }
       } else {
         // Keep callable path for Android/iOS.
-        await functions.FirebaseFunctions.instance.httpsCallable(
+        await functions.FirebaseFunctions.instance
+            .httpsCallable(
           'seedDemoMarketplaceData',
-        ).call({});
+        )
+            .call({});
       }
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -636,10 +662,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
     DocumentReference<Map<String, dynamic>> orderRef,
     String status,
   ) async {
-    await orderRef.set({
+    final payload = <String, dynamic>{
       'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (status == 'processing') {
+      payload['processingAt'] = FieldValue.serverTimestamp();
+    }
+    if (status == 'awaiting_shipment') {
+      payload['awaitingShipmentAt'] = FieldValue.serverTimestamp();
+    }
+    if (status == 'shipped') {
+      payload['shippedAt'] = FieldValue.serverTimestamp();
+    }
+    if (status == 'out_for_delivery') {
+      payload['outForDeliveryAt'] = FieldValue.serverTimestamp();
+    }
+    if (status == 'delivered') {
+      payload['deliveredAt'] = FieldValue.serverTimestamp();
+    }
+    await orderRef.set(payload, SetOptions(merge: true));
   }
 
   Future<void> _toggleProductApproval(
@@ -659,7 +701,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   bool _isProtectedAdminProfile(Map<String, dynamic> data) {
-    return _adminService.isProtectedAdminEmail((data['email'] ?? '').toString());
+    return _adminService
+        .isProtectedAdminEmail((data['email'] ?? '').toString());
   }
 
   String _effectiveRole(Map<String, dynamic> data) {
@@ -673,6 +716,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final role = _effectiveRole(data);
     final sellerRequestStatus = (data['sellerRequestStatus'] ?? '').toString();
     return role == 'seller' || sellerRequestStatus == 'approved';
+  }
+
+  String _customerName(Map<String, dynamic> data) {
+    final direct = (data['customerName'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+    final address = data['address'];
+    if (address is Map) {
+      final fromAddress = (address['fullName'] ?? '').toString().trim();
+      if (fromAddress.isNotEmpty) return fromAddress;
+    }
+    return (data['customerId'] ?? '-').toString();
+  }
+
+  Future<void> _hideOrderForAdmin(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    await _runAdminAction(
+      () => doc.reference.set({
+        'hiddenForAdmin': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)),
+      successMessage: 'Order hidden from admin list.',
+    );
+  }
+
+  Future<void> _hideReturnForAdmin(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    await _runAdminAction(
+      () => doc.reference.set({
+        'hiddenForAdmin': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)),
+      successMessage: 'Return request hidden from admin list.',
+    );
   }
 
   Future<void> _runAdminAction(
@@ -715,8 +793,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 style: destructive
                     ? ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.error,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onError,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
                       )
                     : null,
                 onPressed: () => Navigator.of(context).pop(true),
@@ -753,10 +830,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         .orderBy('createdAt', descending: true)
         .limit(100)
         .get();
-    final usersSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .limit(100)
-        .get();
+    final usersSnapshot =
+        await FirebaseFirestore.instance.collection('users').limit(100).get();
     final sellerDocs = usersSnapshot.docs.where((userDoc) {
       final userData = userDoc.data();
       final role = _effectiveRole(userData);
@@ -867,9 +942,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 value: categoryDoc.id,
                                 child: Text(
                                   ((categoryDoc.data()['nameAr'] ??
-                                                  categoryDoc.data()['nameEn']) ??
-                                              categoryDoc.id)
-                                          .toString(),
+                                              categoryDoc.data()['nameEn']) ??
+                                          categoryDoc.id)
+                                      .toString(),
                                 ),
                               ),
                             )
@@ -904,17 +979,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (uploadedImageUrl != null && uploadedImageUrl!.isNotEmpty)
+                      if (uploadedImageUrl != null &&
+                          uploadedImageUrl!.isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            uploadedImageUrl!,
+                          child: RemoteImage(
+                            imageUrl: uploadedImageUrl!,
                             height: 120,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            webHtmlElementStrategy:
-                                WebHtmlElementStrategy.fallback,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorWidget: Container(
                               height: 120,
                               color: AppTheme.panelSoft(context),
                               alignment: Alignment.center,
@@ -963,15 +1037,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 setDialogState(() => uploadingImage = true);
                                 try {
                                   final file = picked.files.first;
-                                  uploadedImageUrl =
-                                      await _mediaUploadService.uploadProductImage(
+                                  uploadedImageUrl = await _mediaUploadService
+                                      .uploadProductImage(
                                     ownerId: ownerId,
                                     fileName: file.name,
                                     bytes: file.bytes!,
                                   );
                                 } finally {
                                   if (context.mounted) {
-                                    setDialogState(() => uploadingImage = false);
+                                    setDialogState(
+                                        () => uploadingImage = false);
                                   }
                                 }
                               },
@@ -979,7 +1054,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.upload_outlined),
                         label: Text(
@@ -1020,7 +1096,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         (selectedSellerId ?? '').isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete product data correctly.')),
+        const SnackBar(
+            content: Text('Please complete product data correctly.')),
       );
       return;
     }
@@ -1044,7 +1121,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           'sellerId': selectedSellerId,
           'supplierId': data['supplierId'],
           'categoryId': selectedCategoryId,
-          'isApproved': doc == null ? false : data['isApproved'] == true,
+          'isApproved': true,
           'rating': (data['rating'] ?? 0) as num,
           'salesCount': (data['salesCount'] ?? 0) as num,
         },
@@ -1079,25 +1156,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   children: [
                     TextField(
                       controller: nameAr,
-                      decoration: const InputDecoration(labelText: 'Arabic name'),
+                      decoration:
+                          const InputDecoration(labelText: 'Arabic name'),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: nameEn,
-                      decoration: const InputDecoration(labelText: 'English name'),
+                      decoration:
+                          const InputDecoration(labelText: 'English name'),
                     ),
                     const SizedBox(height: 12),
-                    if (uploadedImageUrl != null && uploadedImageUrl!.isNotEmpty)
+                    if (uploadedImageUrl != null &&
+                        uploadedImageUrl!.isNotEmpty)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          uploadedImageUrl!,
+                        child: RemoteImage(
+                          imageUrl: uploadedImageUrl!,
                           height: 120,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          webHtmlElementStrategy:
-                              WebHtmlElementStrategy.fallback,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorWidget: Container(
                             height: 120,
                             color: AppTheme.panelSoft(context),
                             alignment: Alignment.center,
@@ -1122,7 +1200,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       onPressed: uploadingImage
                           ? null
                           : () async {
-                              final picked = await FilePicker.platform.pickFiles(
+                              final picked =
+                                  await FilePicker.platform.pickFiles(
                                 type: FileType.image,
                                 withData: true,
                               );
@@ -1134,8 +1213,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               setDialogState(() => uploadingImage = true);
                               try {
                                 final file = picked.files.first;
-                                uploadedImageUrl =
-                                    await _mediaUploadService.uploadCategoryImage(
+                                uploadedImageUrl = await _mediaUploadService
+                                    .uploadCategoryImage(
                                   fileName: file.name,
                                   bytes: file.bytes!,
                                 );
@@ -1180,7 +1259,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     if (nameAr.text.trim().isEmpty || nameEn.text.trim().isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete category data correctly.')),
+        const SnackBar(
+            content: Text('Please complete category data correctly.')),
       );
       return;
     }
@@ -1195,17 +1275,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  Future<void> _seedDefaultCategories() async {
+    final isArabic = context.locale.languageCode == 'ar';
+    final confirmed = await _confirmAction(
+      title: isArabic ? 'إضافة أقسام جاهزة' : 'Seed default categories',
+      message: isArabic
+          ? 'سيتم إنشاء مجموعة أقسام جاهزة مثل الأحذية، الأزياء، الإلكترونيات، المنزل والمطبخ وغيرها. العملية آمنة ويمكن تكرارها.'
+          : 'This will create a ready-to-use category set including shoes, fashion, electronics, home, kitchen, and more. The operation is safe and repeatable.',
+    );
+    if (!confirmed) return;
+    await _runAdminAction(
+      () async {
+        await _adminService.seedDefaultCategories();
+      },
+      successMessage:
+          isArabic ? 'تمت إضافة الأقسام الجاهزة.' : 'Default categories added.',
+    );
+  }
+
   Future<void> _openBroadcastNotificationForm({
     QueryDocumentSnapshot<Map<String, dynamic>>? doc,
   }) async {
     final data = doc?.data() ?? <String, dynamic>{};
     final title = TextEditingController(text: (data['title'] ?? '').toString());
     final body = TextEditingController(text: (data['body'] ?? '').toString());
-    final save =
-        await showDialog<bool>(
+    final save = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text(doc == null ? 'Send notification' : 'Edit notification'),
+            title:
+                Text(doc == null ? 'Send notification' : 'Edit notification'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1311,11 +1409,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
+    final isAr = context.locale.languageCode == 'ar';
+    if (!auth.isAdmin && user?.role != null) {
+      return Scaffold(
+        backgroundColor: AppTheme.scaffold(context),
+        body: Center(
+          child: Text(
+            context.locale.languageCode == 'ar'
+                ? 'هذه الصفحة متاحة للإدارة فقط.'
+                : 'This page is available to administrators only.',
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
       appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(),
         title: Text('admin.dashboard'.tr()),
         actions: [
           IconButton(
@@ -1380,33 +1493,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 icon: Icons.assignment_return_outlined,
                 stream: _returnsCountStream,
               ),
-              _MetricTile(
-                title: 'admin.metrics.commissions'.tr(),
-                icon: Icons.bar_chart_outlined,
-                stream: _commissionsCountStream,
+              _FutureAmountMetricTile(
+                title: isAr ? 'إجمالي المبيعات' : 'Total sales',
+                icon: Icons.payments_outlined,
+                future: _advancedStatsFuture,
+                selector: (stats) => stats.totalRevenue,
+              ),
+              _FutureAmountMetricTile(
+                title: isAr ? 'إيراد المنصة 2%' : 'Platform revenue 2%',
+                icon: Icons.trending_up_outlined,
+                future: _advancedStatsFuture,
+                selector: (stats) => stats.platformRevenue,
               ),
             ],
           ),
           const SizedBox(height: 16),
           _buildAdvancedStatsCard(),
           const SizedBox(height: 16),
-          _buildUsersManagementCard(),
+          _buildUsersManagementCardV2(),
           const SizedBox(height: 16),
           _buildPendingSellersCard(),
           const SizedBox(height: 16),
-          _buildProductsModerationCard(),
+          _buildProductsModerationCardV2(),
           const SizedBox(height: 16),
-          _buildOrdersManagementCard(),
+          _buildOrdersManagementCardV2(),
           const SizedBox(height: 16),
-          _buildReturnsOverrideCard(),
+          _buildReturnsOverrideCardV2(),
           const SizedBox(height: 16),
-          _buildDiscountCodesCard(),
+          _buildDiscountCodesCardV2(),
           const SizedBox(height: 16),
-          _buildCategoriesCard(),
+          _buildCategoriesCardV2(),
           const SizedBox(height: 16),
-          _buildOffersCard(),
+          _buildOffersCardV2(),
           const SizedBox(height: 16),
-          _buildNotificationsCard(),
+          _buildNotificationsCardV2(),
         ],
       ),
     );
@@ -1431,7 +1551,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${'admin.stats.total_revenue'.tr()}: ${data.totalRevenue.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
+                '${context.locale.languageCode == 'ar' ? 'إجمالي المبيعات' : 'Total sales'}: ${data.totalRevenue.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
+              ),
+              Text(
+                '${context.locale.languageCode == 'ar' ? 'إيراد المنصة 2%' : 'Platform revenue 2%'}: ${data.platformRevenue.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
               ),
               Text('${'admin.stats.active_orders'.tr()}: ${data.activeOrders}'),
               const SizedBox(height: 8),
@@ -1460,6 +1583,433 @@ class _AdminDashboardState extends State<AdminDashboard> {
         border: Border.all(color: AppTheme.border(context)),
       ),
       child: child,
+    );
+  }
+
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _previewDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return docs.take(_previewCount).toList();
+  }
+
+  Widget _buildSectionTitleBar({
+    required String title,
+    required VoidCallback onShowAll,
+    List<Widget> actions = const <Widget>[],
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        ...actions,
+        TextButton(
+          onPressed: onShowAll,
+          child: Text(
+            context.locale.languageCode == 'ar' ? 'إظهار الكل' : 'Show all',
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openAdminRecordsView({
+    required String title,
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    required String searchHint,
+    required String Function(QueryDocumentSnapshot<Map<String, dynamic>>) searchTextBuilder,
+    required Widget Function(QueryDocumentSnapshot<Map<String, dynamic>>) itemBuilder,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _AdminRecordsScreen(
+          title: title,
+          docs: docs,
+          searchHint: searchHint,
+          searchTextBuilder: searchTextBuilder,
+          itemBuilder: itemBuilder,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserTile(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data();
+    final role = _effectiveRole(d);
+    final status = (d['status'] ?? 'approved').toString();
+    final email = (d['email'] ?? '').toString();
+    final protectedAdmin = _isProtectedAdminProfile(d);
+    final sellerAccount = _isSellerAccount(d);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text((d['name'] ?? d['email'] ?? doc.id).toString()),
+      subtitle: Text('$role - $status'),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          if (!protectedAdmin && status != 'approved')
+            IconButton(
+              tooltip: 'Activate',
+              onPressed: () => _runAdminAction(
+                () => _adminService.reactivateUser(uid: doc.id),
+                successMessage: 'User activated.',
+              ),
+              icon: const Icon(Icons.check_circle_outline),
+            ),
+          if (!protectedAdmin && status != 'suspended')
+            IconButton(
+              tooltip: 'admin.actions.suspend'.tr(),
+              onPressed: () => _runAdminAction(
+                () => _adminService.suspendUser(
+                  uid: doc.id,
+                  email: email,
+                ),
+                successMessage: 'User suspended.',
+              ),
+              icon: const Icon(Icons.block_outlined),
+            ),
+          if (!protectedAdmin && sellerAccount)
+            IconButton(
+              tooltip: 'admin.actions.delete'.tr(),
+              onPressed: () async {
+                final confirmed = await _confirmAction(
+                  title: 'Delete seller account',
+                  message:
+                      'This will remove the seller profile, products, and pending requests.',
+                  destructive: true,
+                );
+                if (!confirmed) return;
+                await _runAdminAction(
+                  () => _adminService.deleteSellerAccount(
+                    uid: doc.id,
+                    email: email,
+                  ),
+                  successMessage: 'Seller account deleted.',
+                );
+              },
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductAdminTile(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final d = doc.data();
+    final ar = context.locale.languageCode == 'ar';
+    final title = (ar ? d['titleAr'] : d['titleEn']) ??
+        d['titleEn'] ??
+        d['titleAr'] ??
+        doc.id;
+    final imageUrl = ((d['images'] as List?)?.isNotEmpty ?? false)
+        ? (d['images'] as List).first.toString()
+        : null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.panelSoft(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border(context)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _RemoteThumbnail(url: imageUrl),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.toString(),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text('${'admin.sections.seller_prefix'.tr()}${d['sellerId'] ?? '-'}'),
+                Text(
+                  'Price: ${d['sellingPrice'] ?? 0} - Stock: ${d['stock'] ?? 0}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            children: [
+              Switch(
+                value: d['isApproved'] == true,
+                onChanged: (value) => _runAdminAction(
+                  () => _toggleProductApproval(doc.reference, value),
+                  successMessage:
+                      value ? 'Product approved.' : 'Product hidden.',
+                ),
+              ),
+              Wrap(
+                spacing: 4,
+                children: [
+                  IconButton(
+                    tooltip: 'Edit',
+                    onPressed: () => _openProductForm(doc: doc),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'admin.actions.delete'.tr(),
+                    onPressed: () async {
+                      final confirmed = await _confirmAction(
+                        title: 'Delete product',
+                        message: 'This will permanently delete the product.',
+                        destructive: true,
+                      );
+                      if (!confirmed) return;
+                      await _runAdminAction(
+                        () => _deleteProduct(doc.reference),
+                        successMessage: 'Product deleted.',
+                      );
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderAdminTile(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    const statuses = orderManagementStatuses;
+    final d = doc.data();
+    final status = normalizeOrderStatus((d['status'] ?? 'pending').toString());
+    final tracking = (d['trackingNumber'] ?? '').toString();
+    final canHide = status == 'delivered' || status == 'returned';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        '${'admin.sections.order_prefix'.tr()}${doc.id.substring(0, 8)}',
+      ),
+      subtitle: Text(
+        '${'admin.sections.customer_prefix'.tr()}${_customerName(d)}',
+      ),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          DropdownButton<String>(
+            value: statuses.contains(status) ? status : statuses.first,
+            items: statuses
+                .map(
+                  (s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(
+                      orderStatusLabel(
+                        s,
+                        isArabic: context.locale.languageCode == 'ar',
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (v) {
+              if (v == null) return;
+              _updateOrderStatus(doc.reference, v);
+            },
+          ),
+          IconButton(
+            tooltip:
+                tracking.isEmpty ? 'admin.actions.set_tracking'.tr() : tracking,
+            onPressed: () => _setTrackingNumber(doc.reference, tracking),
+            icon: const Icon(Icons.local_shipping_outlined),
+          ),
+          if (canHide)
+            IconButton(
+              tooltip: 'Hide order',
+              onPressed: () => _hideOrderForAdmin(doc),
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReturnAdminTile(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data();
+    final status = (d['status'] ?? 'pending_seller_review').toString();
+    final canHide = status == 'returned_completed' ||
+        status == 'seller_rejected';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        '${'admin.sections.return_prefix'.tr()}${doc.id.substring(0, 8)}',
+      ),
+      subtitle: Text(
+        returnStatusLabel(
+          status,
+          isArabic: context.locale.languageCode == 'ar',
+        ),
+      ),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          if (canHide)
+            IconButton(
+              tooltip: 'Hide return',
+              onPressed: () => _hideReturnForAdmin(doc),
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscountCodeTile(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final d = doc.data();
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text((d['code'] ?? doc.id).toString()),
+      subtitle: Text('${d['type'] ?? 'percent'}: ${d['value'] ?? 0}'),
+      value: d['isActive'] == true,
+      onChanged: (v) => doc.reference.set({
+        'isActive': v,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)),
+    );
+  }
+
+  Widget _buildOfferAdminTile(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data();
+    final isArabic = context.locale.languageCode == 'ar';
+    final title = (isArabic ? d['titleAr'] : d['titleEn']) ??
+        d['titleEn'] ??
+        d['titleAr'] ??
+        doc.id;
+    final imageUrl = (d['imageUrl'] ?? '').toString();
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: _RemoteThumbnail(
+        url: imageUrl.isEmpty ? null : imageUrl,
+        size: 40,
+      ),
+      title: Text(title.toString()),
+      subtitle: Text(
+        '${'admin.offers.discount_percent'.tr()}: ${d['discountPercent'] ?? 0}%',
+      ),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          Switch(
+            value: d['isActive'] == true,
+            onChanged: (v) => doc.reference.set({
+              'isActive': v,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true)),
+          ),
+          IconButton(
+            tooltip: 'admin.actions.delete'.tr(),
+            onPressed: () async {
+              final confirmed = await _confirmAction(
+                title: 'Delete offer',
+                message: 'This will permanently delete the offer.',
+                destructive: true,
+              );
+              if (!confirmed) return;
+              await _runAdminAction(
+                () => doc.reference.delete(),
+                successMessage: 'Offer deleted.',
+              );
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryAdminTile(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final d = doc.data();
+    final isArabic = context.locale.languageCode == 'ar';
+    final title = (isArabic ? d['nameAr'] : d['nameEn']) ??
+        d['nameEn'] ??
+        d['nameAr'] ??
+        doc.id;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title.toString()),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _openCategoryForm(doc: doc),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () async {
+              final confirmed = await _confirmAction(
+                title: 'Delete category',
+                message:
+                    'This will remove the category and clear it from assigned products.',
+                destructive: true,
+              );
+              if (!confirmed) return;
+              await _runAdminAction(
+                () => _adminService.deleteCategory(doc.id),
+                successMessage: 'Category deleted.',
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationAdminTile(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final d = doc.data();
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text((d['title'] ?? d['type'] ?? '').toString()),
+      subtitle: Text((d['body'] ?? '').toString()),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          IconButton(
+            tooltip: 'Edit',
+            onPressed: () => _openBroadcastNotificationForm(doc: doc),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: 'admin.actions.delete'.tr(),
+            onPressed: () async {
+              final confirmed = await _confirmAction(
+                title: 'Delete notification',
+                message:
+                    'This will remove the notification from all customer and seller accounts.',
+                destructive: true,
+              );
+              if (!confirmed) return;
+              await _runAdminAction(
+                () => _adminService.deleteBroadcastNotification(doc.id),
+                successMessage: 'Notification deleted.',
+              );
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1622,6 +2172,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildUsersManagementCard() {
     return _sectionPanel(
       child: Column(
@@ -1641,7 +2192,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('errors.no_data'.tr());
               }
@@ -1714,6 +2265,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProductsModerationCard() {
     final ar = context.locale.languageCode == 'ar';
     return _sectionPanel(
@@ -1745,7 +2297,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('admin.sections.no_products'.tr());
               }
@@ -1757,9 +2309,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         d['titleEn'] ??
                         d['titleAr'] ??
                         doc.id;
-                    final imageUrl = ((d['images'] as List?)?.isNotEmpty ?? false)
-                        ? (d['images'] as List).first.toString()
-                        : null;
+                    final imageUrl =
+                        ((d['images'] as List?)?.isNotEmpty ?? false)
+                            ? (d['images'] as List).first.toString()
+                            : null;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
@@ -1790,8 +2343,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 ),
                                 Text(
                                   'Price: ${d['sellingPrice'] ?? 0} - Stock: ${d['stock'] ?? 0}',
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -1862,14 +2414,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildOrdersManagementCard() {
-    const statuses = <String>[
-      'pending',
-      'processing',
-      'shipped',
-      'delivered',
-      'returned',
-    ];
+    const statuses = orderManagementStatuses;
     return _sectionPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1888,7 +2435,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('admin.sections.no_orders'.tr());
               }
@@ -1896,7 +2443,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 children: [
                   ...docs.map((doc) {
                     final d = doc.data();
-                    final status = (d['status'] ?? 'pending').toString();
+                    final status = normalizeOrderStatus(
+                      (d['status'] ?? 'pending').toString(),
+                    );
                     final tracking = (d['trackingNumber'] ?? '').toString();
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -1917,7 +2466,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 .map(
                                   (s) => DropdownMenuItem(
                                     value: s,
-                                    child: Text('orders.statuses.$s'.tr()),
+                                    child: Text(
+                                      orderStatusLabel(
+                                        s,
+                                        isArabic:
+                                            context.locale.languageCode == 'ar',
+                                      ),
+                                    ),
                                   ),
                                 )
                                 .toList(),
@@ -1956,6 +2511,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildReturnsOverrideCard() {
     return _sectionPanel(
       child: Column(
@@ -1975,7 +2531,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('admin.sections.no_returns'.tr());
               }
@@ -2030,6 +2586,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDiscountCodesCard() {
     return _sectionPanel(
       child: Column(
@@ -2059,7 +2616,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('admin.coupons.none'.tr());
               }
@@ -2087,6 +2644,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildOffersCard() {
     final isArabic = context.locale.languageCode == 'ar';
     return _sectionPanel(
@@ -2117,7 +2675,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('admin.offers.none'.tr());
               }
@@ -2154,7 +2712,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildCategoriesCard() {
+    final isArabic = context.locale.languageCode == 'ar';
     return _sectionPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2163,10 +2723,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               Expanded(
                 child: Text(
-                  'Categories',
+                  isArabic ? 'الأقسام' : 'Categories',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+              OutlinedButton.icon(
+                onPressed: _seedDefaultCategories,
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: Text(isArabic ? 'أقسام جاهزة' : 'Quick setup'),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () => _openCategoryForm(),
                 child: const Icon(Icons.add),
@@ -2183,15 +2749,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
-                return Text('errors.no_data'.tr());
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('errors.no_data'.tr()),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: _seedDefaultCategories,
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      label: Text(
+                        isArabic
+                            ? 'إضافة الأقسام الجاهزة'
+                            : 'Add default categories',
+                      ),
+                    ),
+                  ],
+                );
               }
-              final ar = context.locale.languageCode == 'ar';
               return Column(
                 children: docs.map((doc) {
                   final d = doc.data();
-                  final title = (ar ? d['nameAr'] : d['nameEn']) ??
+                  final title = (isArabic ? d['nameAr'] : d['nameEn']) ??
                       d['nameEn'] ??
                       d['nameAr'] ??
                       doc.id;
@@ -2233,6 +2813,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildNotificationsCard() {
     if (_notificationsStream == null) return const SizedBox.shrink();
     return _sectionPanel(
@@ -2264,7 +2845,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final docs = snap.data!.docs;
+              final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Text('notifications.none'.tr());
               }
@@ -2315,6 +2896,502 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
+
+  Widget _buildUsersManagementCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _usersStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Text('errors.no_data'.tr());
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'Users management',
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'Users management',
+                  docs: allDocs,
+                  searchHint: 'Search users',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['name'] ?? ''} ${d['email'] ?? ''} ${_effectiveRole(d)} ${d['status'] ?? ''}';
+                  },
+                  itemBuilder: _buildUserTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildUserTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductsModerationCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _productsStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Text('admin.sections.no_products'.tr());
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.products_moderation'.tr(),
+                actions: [
+                  ElevatedButton.icon(
+                    onPressed: () => _openProductForm(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.products_moderation'.tr(),
+                  docs: allDocs,
+                  searchHint: 'Search products',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['titleAr'] ?? ''} ${d['titleEn'] ?? ''} ${d['sellerId'] ?? ''} ${d['categoryId'] ?? ''}';
+                  },
+                  itemBuilder: _buildProductAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildProductAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOrdersManagementCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _ordersStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          final visibleDocs = allDocs
+              .where((doc) => doc.data()['hiddenForAdmin'] != true)
+              .toList();
+          if (visibleDocs.isEmpty) {
+            return Text('admin.sections.no_orders'.tr());
+          }
+          final docs = _previewDocs(visibleDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.orders_management'.tr(),
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.orders_management'.tr(),
+                  docs: visibleDocs,
+                  searchHint: 'Search orders',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${doc.id} ${_customerName(d)} ${d['sellerId'] ?? ''} ${d['status'] ?? ''}';
+                  },
+                  itemBuilder: _buildOrderAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildOrderAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildReturnsOverrideCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _returnsStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          final visibleDocs = allDocs
+              .where((doc) => doc.data()['hiddenForAdmin'] != true)
+              .toList();
+          if (visibleDocs.isEmpty) {
+            return Text('admin.sections.no_returns'.tr());
+          }
+          final docs = _previewDocs(visibleDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.returns_override'.tr(),
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.returns_override'.tr(),
+                  docs: visibleDocs,
+                  searchHint: 'Search returns',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${doc.id} ${d['orderId'] ?? ''} ${d['sellerId'] ?? ''} ${d['status'] ?? ''} ${d['reason'] ?? ''}';
+                  },
+                  itemBuilder: _buildReturnAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildReturnAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDiscountCodesCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _discountCodesStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Text('admin.coupons.none'.tr());
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.discount_codes'.tr(),
+                actions: [
+                  ElevatedButton(
+                    onPressed: _addDiscountCode,
+                    child: Text('admin.coupons.add'.tr()),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.discount_codes'.tr(),
+                  docs: allDocs,
+                  searchHint: 'Search codes',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['code'] ?? ''} ${d['type'] ?? ''} ${d['value'] ?? ''}';
+                  },
+                  itemBuilder: _buildDiscountCodeTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildDiscountCodeTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOffersCardV2() {
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _offersStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('admin.offers.none'.tr()),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _addOffer,
+                  child: Text('admin.offers.add'.tr()),
+                ),
+              ],
+            );
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.offers_promotions'.tr(),
+                actions: [
+                  ElevatedButton(
+                    onPressed: _addOffer,
+                    child: Text('admin.offers.add'.tr()),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.offers_promotions'.tr(),
+                  docs: allDocs,
+                  searchHint: 'Search offers',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['titleAr'] ?? ''} ${d['titleEn'] ?? ''} ${d['discountPercent'] ?? ''}';
+                  },
+                  itemBuilder: _buildOfferAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildOfferAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategoriesCardV2() {
+    final isArabic = context.locale.languageCode == 'ar';
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _categoriesStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('errors.no_data'.tr()),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: _seedDefaultCategories,
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: Text(
+                    isArabic ? 'إضافة الأقسام الجاهزة' : 'Add default categories',
+                  ),
+                ),
+              ],
+            );
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: isArabic ? 'الأقسام' : 'Categories',
+                actions: [
+                  OutlinedButton.icon(
+                    onPressed: _seedDefaultCategories,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: Text(isArabic ? 'أقسام جاهزة' : 'Quick setup'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () => _openCategoryForm(),
+                    child: const Icon(Icons.add),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                onShowAll: () => _openAdminRecordsView(
+                  title: isArabic ? 'الأقسام' : 'Categories',
+                  docs: allDocs,
+                  searchHint: isArabic ? 'ابحث في الأقسام' : 'Search categories',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['nameAr'] ?? ''} ${d['nameEn'] ?? ''}';
+                  },
+                  itemBuilder: _buildCategoryAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildCategoryAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNotificationsCardV2() {
+    if (_notificationsStream == null) return const SizedBox.shrink();
+    return _sectionPanel(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _notificationsStream,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return _buildQueryError(snap.error!);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final allDocs = snap.data?.docs ?? [];
+          if (allDocs.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('notifications.none'.tr()),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: _openBroadcastNotificationForm,
+                  icon: const Icon(Icons.campaign_outlined),
+                  label: const Text('Add'),
+                ),
+              ],
+            );
+          }
+          final docs = _previewDocs(allDocs);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitleBar(
+                title: 'admin.sections.notifications_panel'.tr(),
+                actions: [
+                  ElevatedButton.icon(
+                    onPressed: _openBroadcastNotificationForm,
+                    icon: const Icon(Icons.campaign_outlined),
+                    label: const Text('Add'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                onShowAll: () => _openAdminRecordsView(
+                  title: 'admin.sections.notifications_panel'.tr(),
+                  docs: allDocs,
+                  searchHint: 'Search notifications',
+                  searchTextBuilder: (doc) {
+                    final d = doc.data();
+                    return '${d['title'] ?? ''} ${d['body'] ?? ''} ${d['type'] ?? ''}';
+                  },
+                  itemBuilder: _buildNotificationAdminTile,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...docs.map(_buildNotificationAdminTile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AdminRecordsScreen extends StatefulWidget {
+  final String title;
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+  final String searchHint;
+  final String Function(QueryDocumentSnapshot<Map<String, dynamic>>) searchTextBuilder;
+  final Widget Function(QueryDocumentSnapshot<Map<String, dynamic>>) itemBuilder;
+
+  const _AdminRecordsScreen({
+    required this.title,
+    required this.docs,
+    required this.searchHint,
+    required this.searchTextBuilder,
+    required this.itemBuilder,
+  });
+
+  @override
+  State<_AdminRecordsScreen> createState() => _AdminRecordsScreenState();
+}
+
+class _AdminRecordsScreenState extends State<_AdminRecordsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.trim().toLowerCase();
+    final docs = widget.docs.where((doc) {
+      if (query.isEmpty) {
+        return true;
+      }
+      return widget.searchTextBuilder(doc).toLowerCase().contains(query);
+    }).toList();
+
+    return Scaffold(
+      backgroundColor: AppTheme.scaffold(context),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(),
+        title: Text(widget.title),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 18),
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: widget.searchHint,
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          if (docs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                context.locale.languageCode == 'ar'
+                    ? 'لا توجد نتائج مطابقة.'
+                    : 'No matching results.',
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...docs.map(widget.itemBuilder),
+        ],
+      ),
+    );
+  }
 }
 
 class _MetricTile extends StatelessWidget {
@@ -2353,6 +3430,58 @@ class _MetricTile extends StatelessWidget {
                 return Text(
                   value,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FutureAmountMetricTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Future<_AdvancedStats> future;
+  final double Function(_AdvancedStats stats) selector;
+
+  const _FutureAmountMetricTile({
+    required this.title,
+    required this.icon,
+    required this.future,
+    required this.selector,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 170,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.panel(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.border(context)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppTheme.primary),
+            const SizedBox(height: 8),
+            Text(title),
+            const SizedBox(height: 6),
+            FutureBuilder<_AdvancedStats>(
+              future: future,
+              builder: (context, snap) {
+                final value = snap.data == null
+                    ? '...'
+                    : '${selector(snap.data!).toStringAsFixed(2)} ${'common.currency_egp'.tr()}';
+                return Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 );
@@ -2417,13 +3546,12 @@ class _RemoteThumbnail extends StatelessWidget {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Image.network(
-        value,
+      child: RemoteImage(
+        imageUrl: value,
         width: size,
         height: size,
         fit: BoxFit.cover,
-        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-        errorBuilder: (_, __, ___) => Container(
+        errorWidget: Container(
           width: size,
           height: size,
           color: AppTheme.panelSoft(context),
@@ -2437,12 +3565,14 @@ class _RemoteThumbnail extends StatelessWidget {
 
 class _AdvancedStats {
   final double totalRevenue;
+  final double platformRevenue;
   final int activeOrders;
   final List<MapEntry<String, double>> topSellers;
   final List<MapEntry<String, double>> topCategories;
 
   const _AdvancedStats({
     required this.totalRevenue,
+    required this.platformRevenue,
     required this.activeOrders,
     required this.topSellers,
     required this.topCategories,

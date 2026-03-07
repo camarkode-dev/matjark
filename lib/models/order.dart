@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum OrderStatus {
   pending,
   processing,
+  awaitingShipment,
   shipped,
+  outForDelivery,
   delivered,
   returned,
 }
@@ -15,8 +17,12 @@ OrderStatus orderStatusFromFirestore(String? value) {
     case 'sent_to_vendor':
     case 'sentToSeller':
       return OrderStatus.processing;
+    case 'awaiting_shipment':
+      return OrderStatus.awaitingShipment;
     case 'shipped':
       return OrderStatus.shipped;
+    case 'out_for_delivery':
+      return OrderStatus.outForDelivery;
     case 'delivered':
       return OrderStatus.delivered;
     case 'returned':
@@ -33,8 +39,12 @@ String orderStatusToFirestore(OrderStatus status) {
       return 'pending';
     case OrderStatus.processing:
       return 'processing';
+    case OrderStatus.awaitingShipment:
+      return 'awaiting_shipment';
     case OrderStatus.shipped:
       return 'shipped';
+    case OrderStatus.outForDelivery:
+      return 'out_for_delivery';
     case OrderStatus.delivered:
       return 'delivered';
     case OrderStatus.returned:

@@ -102,6 +102,8 @@
       "phone_setup_required": "Phone authentication is not enabled for this Firebase project.",
       "phone_auth_localhost_unsupported": "Phone OTP is not supported on localhost web. Use Android/iOS or a deployed domain such as Firebase Hosting.",
       "recaptcha_check_failed": "reCAPTCHA verification failed. Check authorized domains and try again.",
+      "firebase_config_invalid": "Firebase web configuration is invalid. Check apiKey, authDomain, and authorized domains.",
+      "email_password_not_enabled": "Email/password sign-in is not enabled in Firebase Authentication.",
       "unsupported_language": "Unsupported language.",
       "user_not_signed_in": "User is not signed in.",
       "unexpected": "An unexpected error occurred."

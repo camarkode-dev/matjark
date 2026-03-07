@@ -6,12 +6,14 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../core/auth_result.dart';
+import '../core/constants.dart';
 import '../models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   GoogleSignIn? _googleSignIn;
+  ConfirmationResult? _webConfirmationResult;
 
   /// Returns stream of Firebase [User] provided by firebase_auth.
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -29,6 +31,7 @@ class AuthService {
     try {
       final doc = _firestore.collection('users').doc(user.uid);
       final snapshot = await doc.get();
+      final shouldGrantAdmin = _shouldGrantAdminRole(user, role);
       if (snapshot.exists) {
         final data = snapshot.data() ?? {};
         final updates = <String, dynamic>{
@@ -44,15 +47,25 @@ class AuthService {
           updates['status'] =
               (data['isApproved'] == true) ? 'approved' : 'pending';
         }
+        if (shouldGrantAdmin) {
+          updates.addAll({
+            'role': UserRole.admin.name,
+            'status': 'approved',
+            'isApproved': true,
+            'sellerRequestStatus': 'none',
+          });
+        }
         await doc.update(updates);
       } else {
-        final approved = role == UserRole.customer;
+        final effectiveRole = shouldGrantAdmin ? UserRole.admin : role;
+        final approved =
+            effectiveRole == UserRole.customer || effectiveRole == UserRole.admin;
         await doc.set({
           'uid': user.uid,
           'email': user.email,
           'name': name ?? user.displayName,
           'phone': phone ?? user.phoneNumber,
-          'role': role.name,
+          'role': effectiveRole.name,
           'status': approved ? 'approved' : 'pending',
           'isApproved': approved,
           'sellerRequestStatus': 'none',
@@ -61,10 +74,21 @@ class AuthService {
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
+      if (shouldGrantAdmin) {
+        await user.getIdToken(true);
+      }
     } catch (e) {
       // Log error only - auth succeeded, Firestore update is secondary
       debugPrint('Error updating Firestore user: $e');
     }
+  }
+
+  bool _shouldGrantAdminRole(User user, UserRole requestedRole) {
+    if (requestedRole == UserRole.admin) {
+      return true;
+    }
+    final email = (user.email ?? '').trim().toLowerCase();
+    return email.isNotEmpty && email == AppStrings.adminEmail.toLowerCase();
   }
 
   /// Sign in with email and password
@@ -82,6 +106,7 @@ class AuthService {
       await _updateFirestoreUser(cred.user!);
       return const Success(null);
     } on FirebaseAuthException catch (e) {
+      debugPrint('Email sign-in failed [${e.code}]: ${e.message}');
       return Failure(_mapAuthException(e));
     } catch (e) {
       return Failure(AuthFailureUnknown(e.toString()));
@@ -130,6 +155,17 @@ class AuthService {
             AuthFailureUnknown('auth.errors.phone_auth_localhost_unsupported'),
           );
         }
+
+        try {
+          await _auth.initializeRecaptchaConfig();
+        } catch (e) {
+          debugPrint(
+            'reCAPTCHA config warmup failed. Verify the web app domain is authorized and reCAPTCHA is configured in Firebase Auth. Details: $e',
+          );
+        }
+
+        _webConfirmationResult = await _auth.signInWithPhoneNumber(phoneNumber);
+        return const Success(null);
       }
 
       await _auth.verifyPhoneNumber(
@@ -167,6 +203,17 @@ class AuthService {
   /// Verify OTP code
   Future<Result<void, AuthFailure>> verifyPhoneOTP(String code) async {
     try {
+      if (kIsWeb) {
+        final confirmationResult = _webConfirmationResult;
+        if (confirmationResult == null) {
+          return Failure(AuthFailureInvalidVerificationCode());
+        }
+        final cred = await confirmationResult.confirm(code);
+        await _updateFirestoreUser(cred.user!);
+        _webConfirmationResult = null;
+        return const Success(null);
+      }
+
       if (_verificationId == null) {
         return Failure(AuthFailureInvalidVerificationCode());
       }
@@ -198,6 +245,7 @@ class AuthService {
     await _auth.signOut();
     await _googleSignIn?.signOut();
     _verificationId = null;
+    _webConfirmationResult = null;
   }
 
   /// Google Sign-In
@@ -205,7 +253,6 @@ class AuthService {
     UserRole role = UserRole.customer,
   }) async {
     try {
-      final UserCredential cred;
       if (kIsWeb) {
         final provider = GoogleAuthProvider()
           ..addScope('email')
@@ -213,8 +260,10 @@ class AuthService {
           ..setCustomParameters({
             'prompt': 'select_account',
           });
-        cred = await _auth.signInWithPopup(provider);
+        await _auth.signInWithRedirect(provider);
+        return const Success(null);
       } else {
+        final UserCredential cred;
         final googleSignIn = _googleSignIn ??= GoogleSignIn(
           scopes: const ['email', 'profile'],
         );
@@ -235,11 +284,10 @@ class AuthService {
 
         final credential = GoogleAuthProvider.credential(idToken: idToken);
         cred = await _auth.signInWithCredential(credential);
+        await cred.user!.getIdToken(true);
+        await _updateFirestoreUser(cred.user!, role: role);
+        return const Success(null);
       }
-
-      await cred.user!.getIdToken(true);
-      await _updateFirestoreUser(cred.user!, role: role);
-      return const Success(null);
     } catch (e) {
       final message = e.toString().toLowerCase();
       if (message.contains('clientid not set')) {
@@ -344,10 +392,18 @@ class AuthService {
       'user-not-found' => AuthFailureEmailNotFound(),
       'wrong-password' => AuthFailureWrongPassword(),
       'invalid-credential' => AuthFailureWrongPassword(),
+      'invalid-login-credentials' => AuthFailureWrongPassword(),
       'invalid-email' => AuthFailureInvalidEmail(),
       'weak-password' => AuthFailureWeakPassword(),
       'email-already-in-use' => AuthFailureEmailInUse(),
       'user-disabled' => AuthFailureUserDisabled(),
+      'invalid-api-key' =>
+        AuthFailureUnknown('auth.errors.firebase_config_invalid'),
+      'app-not-authorized' =>
+        AuthFailureUnknown('auth.errors.firebase_config_invalid'),
+      'operation-not-allowed' =>
+        AuthFailureUnknown('auth.errors.email_password_not_enabled'),
+      'network-request-failed' => AuthFailureNetwork('auth.errors.network'),
       'too-many-requests' => AuthFailureTooManyRequests(),
       _ => AuthFailureUnknown(e.message),
     };

@@ -18,6 +18,46 @@ class FirestoreService {
         .map((snap) => snap.docs.map((d) => Category.fromDoc(d)).toList());
   }
 
+  Stream<Map<String, dynamic>?> getFeaturedOffer() {
+    return _db
+        .collection('offers')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) {
+      if (snap.docs.isEmpty) {
+        return null;
+      }
+      return _normalizeOfferData(snap.docs.first);
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getActiveOffers({int limit = 10}) {
+    return _db
+        .collection('offers')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map(_normalizeOfferData)
+              .toList(),
+        );
+  }
+
+  Stream<List<Product>> getBestSellerProducts({int limit = 8}) {
+    return _db
+        .collection('products')
+        .where('isApproved', isEqualTo: true)
+        .where('isActive', isEqualTo: true)
+        .orderBy('salesCount', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => Product.fromDoc(d)).toList());
+  }
+
   /// Products with pagination & filters
   Stream<List<Product>> getProducts({
     String? categoryId,
@@ -26,12 +66,16 @@ class FirestoreService {
     String? sellerId,
     String? supplierId,
     bool onlyApproved = true,
+    bool onlyActive = true,
     int limit = 20,
     DocumentSnapshot? startAfter,
   }) {
     Query query = _db.collection('products');
     if (onlyApproved) {
       query = query.where('isApproved', isEqualTo: true);
+    }
+    if (onlyActive) {
+      query = query.where('isActive', isEqualTo: true);
     }
     if (categoryId != null) {
       query = query.where('categoryId', isEqualTo: categoryId);
@@ -53,8 +97,8 @@ class FirestoreService {
       query = query.startAfterDocument(startAfter);
     }
     return query.snapshots().map(
-      (snap) => snap.docs.map((d) => Product.fromDoc(d)).toList(),
-    );
+          (snap) => snap.docs.map((d) => Product.fromDoc(d)).toList(),
+        );
   }
 
   Future<ProductPage> fetchProductsPage({
@@ -64,6 +108,7 @@ class FirestoreService {
     double? minRating,
     bool onlyDiscounted = false,
     bool onlyApproved = true,
+    bool onlyActive = true,
     bool bestSellers = false,
     int limit = 20,
     DocumentSnapshot? startAfter,
@@ -71,6 +116,9 @@ class FirestoreService {
     Query<Map<String, dynamic>> query = _db.collection('products');
     if (onlyApproved) {
       query = query.where('isApproved', isEqualTo: true);
+    }
+    if (onlyActive) {
+      query = query.where('isActive', isEqualTo: true);
     }
     if (categoryId != null && categoryId.isNotEmpty) {
       query = query.where('categoryId', isEqualTo: categoryId);
@@ -115,6 +163,7 @@ class FirestoreService {
     final sellerRevenue = double.parse((total - platformFee).toStringAsFixed(2));
     return _db.collection('orders').add({
       ...base,
+      'customerName': ((base['address'] ?? const <String, dynamic>{}) as Map)['fullName'],
       'platform_fee': platformFee,
       'seller_revenue': sellerRevenue,
       'commission': platformFee,
@@ -123,6 +172,32 @@ class FirestoreService {
   }
 
   /// Additional service methods will be added as features expand.
+
+  Map<String, dynamic> _normalizeOfferData(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final rawImages = data['images'];
+    final images = rawImages is List
+        ? rawImages
+            .map((value) => value?.toString().trim() ?? '')
+            .where((value) => value.isNotEmpty)
+            .toList()
+        : const <String>[];
+    final imageUrl = (data['imageUrl'] ??
+            data['bannerUrl'] ??
+            data['coverImage'] ??
+            (images.isNotEmpty ? images.first : ''))
+        .toString()
+        .trim();
+
+    return <String, dynamic>{
+      'id': doc.id,
+      ...data,
+      'images': images,
+      'imageUrl': imageUrl,
+    };
+  }
 }
 
 class ProductPage {

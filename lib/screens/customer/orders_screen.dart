@@ -1,11 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/order_workflow.dart';
+import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/media_upload_service.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
+import '../../widgets/remote_image.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -16,17 +21,19 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   final Set<String> _submittingReturnForOrder = <String>{};
+  final MediaUploadService _mediaUploadService = MediaUploadService();
 
   Color _statusColor(String status, BuildContext context) {
-    switch (status) {
+    switch (normalizeOrderStatus(status)) {
       case 'pending':
         return Colors.orange;
-      case 'confirmed':
-      case 'sent_to_vendor':
       case 'processing':
+      case 'awaiting_shipment':
         return Colors.blue;
       case 'shipped':
         return Colors.indigo;
+      case 'out_for_delivery':
+        return Colors.teal;
       case 'delivered':
         return Colors.green;
       case 'returned':
@@ -54,10 +61,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final detailsController = TextEditingController();
     String selectedReason = 'damaged_item';
     bool confirm = false;
+    bool uploadingEvidence = false;
+    String? evidenceImageUrl;
 
     try {
-      final proceed =
-          await showDialog<bool>(
+      final proceed = await showDialog<bool>(
             context: context,
             builder: (dialogContext) {
               return StatefulBuilder(
@@ -120,6 +128,82 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
+                          if (evidenceImageUrl != null &&
+                              evidenceImageUrl!.trim().isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: RemoteImage(
+                                imageUrl: evidenceImageUrl!,
+                                width: double.infinity,
+                                height: 150,
+                                fit: BoxFit.cover,
+                                errorWidget: Container(
+                                  height: 150,
+                                  color: AppTheme.panelSoft(context),
+                                  alignment: Alignment.center,
+                                  child:
+                                      const Icon(Icons.broken_image_outlined),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: uploadingEvidence
+                                  ? null
+                                  : () async {
+                                      final picked =
+                                          await FilePicker.platform.pickFiles(
+                                        type: FileType.image,
+                                        withData: true,
+                                      );
+                                      if (picked == null ||
+                                          picked.files.isEmpty ||
+                                          picked.files.first.bytes == null) {
+                                        return;
+                                      }
+                                      setDialogState(
+                                        () => uploadingEvidence = true,
+                                      );
+                                      try {
+                                        final file = picked.files.first;
+                                        final uploadedUrl =
+                                            await _mediaUploadService
+                                                .uploadReturnEvidence(
+                                          ownerId: customerId,
+                                          fileName: file.name,
+                                          bytes: file.bytes!,
+                                        );
+                                        setDialogState(
+                                          () => evidenceImageUrl = uploadedUrl,
+                                        );
+                                      } finally {
+                                        if (context.mounted) {
+                                          setDialogState(
+                                            () => uploadingEvidence = false,
+                                          );
+                                        }
+                                      }
+                                    },
+                              icon: uploadingEvidence
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.photo_camera_back_outlined),
+                              label: Text(
+                                context.locale.languageCode == 'ar'
+                                    ? 'إرفاق صورة المنتج المرتجع'
+                                    : 'Attach return product image',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
                           CheckboxListTile(
                             value: confirm,
                             contentPadding: EdgeInsets.zero,
@@ -136,7 +220,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         child: Text('orders.cancel'.tr()),
                       ),
                       ElevatedButton(
-                        onPressed: confirm
+                        onPressed: confirm &&
+                                evidenceImageUrl != null &&
+                                evidenceImageUrl!.trim().isNotEmpty
                             ? () => Navigator.of(dialogContext).pop(true)
                             : null,
                         child: Text('orders.submit'.tr()),
@@ -163,7 +249,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
       final hasOpenReturn = existing.docs.any((doc) {
         final status = (doc.data()['status'] ?? '').toString();
-        return status != 'seller_rejected' && status != 'admin_rejected';
+        return status != 'seller_rejected';
       });
 
       if (hasOpenReturn) {
@@ -185,6 +271,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         'status': 'pending_seller_review',
         'reason': selectedReason,
         'details': detailsController.text.trim(),
+        'imageUrl': evidenceImageUrl,
+        'images': evidenceImageUrl == null ? <String>[] : <String>[evidenceImageUrl!],
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -231,10 +319,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return Scaffold(
       drawer: const MarketplaceDrawer(),
-      appBar: AppBar(title: Text('nav.orders'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('nav.orders'.tr()),
+      ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: ordersStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '${'errors.network'.tr()}: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -256,11 +358,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
             itemBuilder: (context, index) {
               final doc = docs[index];
               final data = doc.data();
-              final status = (data['status'] ?? 'pending').toString();
+              final status = normalizeOrderStatus(
+                (data['status'] ?? 'pending').toString(),
+              );
               final total = ((data['totalAmount'] ?? 0) as num).toDouble();
               final tracking = (data['trackingNumber'] ?? '').toString();
-              final returnStatus = (data['returnRequestStatus'] ?? '')
-                  .toString();
+              final returnStatus =
+                  (data['returnRequestStatus'] ?? '').toString();
               final isSubmittingReturn = _submittingReturnForOrder.contains(
                 doc.id,
               );
@@ -272,9 +376,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF111A2E),
+                    color: AppTheme.panel(context),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF2D3B5C)),
+                    border: Border.all(color: AppTheme.border(context)),
+                    boxShadow: AppTheme.shadowSmall,
                   ),
                   child: Column(
                     children: [
@@ -283,7 +388,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           Expanded(
                             child: Text(
                               '${'orders.label'.tr()}${doc.id.substring(0, 8)}',
-                              style: Theme.of(context).textTheme.titleSmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -300,7 +407,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              'orders.statuses.$status'.tr(),
+                              orderStatusLabel(
+                                status,
+                                isArabic: context.locale.languageCode == 'ar',
+                              ),
                               style: TextStyle(
                                 color: _statusColor(status, context),
                                 fontSize: 12,
@@ -315,14 +425,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${'orders.status_prefix'.tr()}${'orders.statuses.$status'.tr()}',
+                              '${'orders.status_prefix'.tr()}${orderStatusLabel(status, isArabic: context.locale.languageCode == 'ar')}',
                             ),
                           ),
                           Text(
                             '${total.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
-                                  color: const Color(0xFF6C98FF),
+                                  color: AppTheme.primary,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -363,9 +475,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             onPressed: isSubmittingReturn
                                 ? null
                                 : () => _openReturnDialog(
-                                    orderDoc: doc,
-                                    customerId: user.uid,
-                                  ),
+                                      orderDoc: doc,
+                                      customerId: user.uid,
+                                    ),
                             icon: isSubmittingReturn
                                 ? const SizedBox(
                                     width: 14,

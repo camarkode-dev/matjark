@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
+import '../../widgets/remote_image.dart';
 import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -91,12 +93,26 @@ class _CartScreenState extends State<CartScreen> {
         .snapshots();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.scaffold(context),
       drawer: const MarketplaceDrawer(),
-      appBar: AppBar(title: Text('nav.cart'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('nav.cart'.tr()),
+      ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: itemsStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '${'errors.network'.tr()}: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -156,9 +172,10 @@ class _CartScreenState extends State<CartScreen> {
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppTheme.surface,
+                        color: AppTheme.panel(context),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.borderLight),
+                        border: Border.all(color: AppTheme.border(context)),
+                        boxShadow: AppTheme.shadowSmall,
                       ),
                       child: Row(
                         children: [
@@ -167,13 +184,13 @@ class _CartScreenState extends State<CartScreen> {
                             child: Container(
                               width: 70,
                               height: 70,
-                              color: AppTheme.surfaceSoft,
+                              color: AppTheme.panelSoft(context),
                               child: image.isEmpty
                                   ? const Icon(Icons.inventory_2_outlined)
-                                  : Image.network(
-                                      image,
+                                  : RemoteImage(
+                                      imageUrl: image,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(
+                                      errorWidget: const Icon(
                                         Icons.broken_image_outlined,
                                       ),
                                     ),
@@ -188,13 +205,17 @@ class _CartScreenState extends State<CartScreen> {
                                   title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleSmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   '${price.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(
                                         color: AppTheme.primary,
                                         fontWeight: FontWeight.w700,
@@ -256,10 +277,10 @@ class _CartScreenState extends State<CartScreen> {
                 top: false,
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.surface,
+                  decoration: BoxDecoration(
+                    color: AppTheme.panel(context),
                     border: Border(
-                      top: BorderSide(color: AppTheme.borderLight),
+                      top: BorderSide(color: AppTheme.border(context)),
                     ),
                   ),
                   child: Column(
@@ -284,6 +305,9 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
                         onPressed: () {
                           final cartItems = docs
                               .map(
@@ -332,9 +356,9 @@ class _QtyButton extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: AppTheme.surfaceSoft,
+          color: AppTheme.panelSoft(context),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(color: AppTheme.border(context)),
         ),
         child: Icon(icon, size: 16),
       ),

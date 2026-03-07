@@ -1,0 +1,598 @@
+{
+  "app": {
+    "title": "متجرك"
+  },
+  "welcome_back": "مرحبًا بعودتك",
+  "login_to_account": "قم بتسجيل الدخول إلى حسابك",
+  "login": "تسجيل الدخول",
+  "signing_in": "جاري تسجيل الدخول...",
+  "sign_in_with_google": "تسجيل الدخول بواسطة Google",
+  "or": "أو",
+  "don't_have_account": "ليس لديك حساب؟",
+  "register": "تسجيل",
+  "create_account": "إنشاء حساب",
+  "already_have_account": "هل لديك حساب بالفعل؟ سجّل الدخول",
+  "creating_account": "جاري إنشاء الحساب...",
+  "name": "الاسم",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "confirm_password": "تأكيد كلمة المرور",
+  "passwords_dont_match": "كلمات المرور غير متطابقة",
+  "name_required": "الاسم مطلوب",
+  "email_invalid": "البريد الإلكتروني غير صالح",
+  "password_min_6": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+  "role": "الدور",
+  "phone_number": "رقم الهاتف",
+  "phone_required": "رقم الهاتف مطلوب",
+  "phone_invalid": "رقم الهاتف غير صالح",
+  "send_otp": "إرسال الرمز",
+  "sending": "جاري الإرسال...",
+  "otp_code": "أدخل الرمز",
+  "verify_otp": "تحقق من الرمز",
+  "verifying": "جاري التحقق...",
+  "resend_code": "إعادة إرسال الرمز",
+  "categories": {
+    "empty": "لا توجد تصنيفات متاحة."
+  },
+  "featured_products": "المنتجات المميزة",
+  "see_all": "عرض الكل",
+  "edit_profile": "تعديل الملف الشخصي",
+  "logout": "تسجيل الخروج",
+  "phone": "الهاتف",
+  "seller_dashboard": "لوحة البائع",
+  "supplier_dashboard": "لوحة المورد",
+  "admin_dashboard": "لوحة الإدارة",
+  "customer": "عميل",
+  "auth": {
+    "welcome_back": "مرحبًا بعودتك",
+    "choose_login_method": "اختر طريقة تسجيل الدخول",
+    "email_hint": "user@example.com",
+    "phone_hint": "01012345678",
+    "sent_code_to": "تم إرسال رمز إلى {phone}",
+    "resend_in_seconds": "إعادة إرسال الرمز خلال {seconds} ثانية",
+    "account_created_success": "تم إنشاء الحساب بنجاح",
+    "check_email_to_verify": "يرجى التحقق من بريدك الإلكتروني لتفعيل حسابك. يمكنك الضغط على الزر أدناه لفتح تطبيق البريد.",
+    "open_mail_app": "افتح تطبيق البريد",
+    "create_account_subtitle": "أنشئ حسابك للبدء",
+    "login_to_account": "قم بتسجيل الدخول إلى حسابك",
+    "login": "تسجيل الدخول",
+    "signing_in": "جاري تسجيل الدخول...",
+    "sign_in_with_google": "تسجيل الدخول بواسطة Google",
+    "or": "أو",
+    "dont_have_account": "ليس لديك حساب؟",
+    "register": "تسجيل",
+    "create_account": "إنشاء حساب",
+    "already_have_account": "هل لديك حساب بالفعل؟ سجّل الدخول",
+    "creating_account": "جاري إنشاء الحساب...",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "passwords_dont_match": "كلمات المرور غير متطابقة",
+    "name_required": "الاسم مطلوب",
+    "email_invalid": "البريد الإلكتروني غير صالح",
+    "password_min_6": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+    "role": "الدور",
+    "phone_required": "رقم الهاتف مطلوب",
+    "phone_invalid": "رقم الهاتف غير صالح",
+    "send_otp": "إرسال الرمز",
+    "sending": "جاري الإرسال...",
+    "otp_code": "أدخل الرمز",
+    "verify_otp": "تحقق من الرمز",
+    "verifying": "جاري التحقق...",
+    "resend_code": "إعادة إرسال الرمز",
+    "errors": {
+      "network": "خطأ في الشبكة، حاول مرة أخرى لاحقًا.",
+      "required": "هذا الحقل مطلوب",
+      "invalid": "قيمة غير صالحة",
+      "email_not_found": "لا يوجد حساب بهذا البريد الإلكتروني.",
+      "wrong_password": "كلمة المرور غير صحيحة.",
+      "invalid_email": "يرجى إدخال بريد إلكتروني صحيح.",
+      "weak_password": "يجب أن تكون كلمة المرور 6 أحرف على الأقل.",
+      "email_in_use": "هذا البريد مستخدم بالفعل.",
+      "user_disabled": "تم تعطيل هذا الحساب.",
+      "invalid_phone_number": "رقم الهاتف غير صحيح.",
+      "too_many_requests": "عدد المحاولات كبير. حاول لاحقاً.",
+      "invalid_verification_code": "رمز التحقق غير صحيح.",
+      "phone_verification_failed": "فشل التحقق عبر الهاتف. حاول مرة أخرى.",
+      "google_client_id_missing": "تسجيل Google على الويب غير مُعد. أضف GOOGLE_WEB_CLIENT_ID عند التشغيل أو البناء.",
+      "phone_setup_required": "تسجيل الدخول برقم الهاتف غير مُفعّل في إعدادات Firebase Authentication.",
+      "phone_auth_localhost_unsupported": "رمز التحقق عبر الهاتف لا يعمل على Web من localhost. استخدم Android أو iOS أو شغّل التطبيق على دومين منشور مثل Firebase Hosting.",
+      "recaptcha_check_failed": "فشل تحقق reCAPTCHA. راجع النطاقات المصرح بها ثم أعد المحاولة.",
+      "unsupported_language": "اللغة غير مدعومة.",
+      "user_not_signed_in": "المستخدم غير مسجل الدخول.",
+      "unexpected": "حدث خطأ غير متوقع."
+    },
+    "forgot_password": "هل نسيت كلمة المرور؟",
+    "enter_email_for_reset": "أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
+    "reset_email_sent": "تم إرسال رسالة إعادة تعيين كلمة المرور."
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "cart": "العربة",
+    "orders": "الطلبات",
+    "favorites": "المفضلة",
+    "profile": "الملف الشخصي",
+    "logout": "تسجيل الخروج",
+    "categories": "التصنيفات"
+  },
+  "home": {
+    "title": "الرئيسية",
+    "categories": "الفئات",
+    "featured_products": "المنتجات المميزة",
+    "see_all": "عرض الكل",
+    "search": "بحث",
+    "offers": "العروض",
+    "banner_welcome": "مرحبًا",
+    "banner_subtitle": "اكتشف منتجات رائعة",
+    "no_featured": "لا توجد منتجات مميزة الآن."
+  },
+  "cart": {
+    "empty": "العربة فارغة.",
+    "qty_prefix": "الكمية: ",
+    "total_prefix": "الإجمالي: ",
+    "checkout": "إتمام الشراء",
+    "increase_qty": "زيادة الكمية",
+    "decrease_qty": "تقليل الكمية",
+    "remove_item": "إزالة العنصر",
+    "update_failed": "فشل تحديث عنصر السلة: {error}",
+    "remove_failed": "فشل إزالة عنصر السلة: {error}"
+  },
+  "checkout": {
+    "title": "الدفع",
+    "failed_totals": "فشل حساب المجموع.",
+    "enter_address": "يرجى إدخال عنوان التسليم.",
+    "placed_success": "تم إنشاء الطلب بنجاح.",
+    "failed": "فشل إتمام الطلب: {error}",
+    "delivery_address": "عنوان التسليم",
+    "governorate": "المحافظة",
+    "discount_code": "كود الخصم",
+    "payment_method": "طريقة الدفع",
+    "select_payment_method": "اختر طريقة الدفع",
+    "subtotal": "الإجمالي الفرعي",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "shipping": "الشحن",
+    "total": "الإجمالي",
+    "placing_order": "جاري تأكيد الطلب...",
+    "confirm_order": "تأكيد الطلب",
+    "payment_confirmation_title": "تأكيد الدفع",
+    "payment_reference": "المرجع: {id}",
+    "payment_provider": "مزود الدفع: {provider}",
+    "payment_status": "الحالة: {status}",
+    "open_payment_page": "فتح صفحة الدفع"
+  },
+  "governorates": {
+    "cairo": "القاهرة",
+    "giza": "الجيزة",
+    "alexandria": "الإسكندرية",
+    "delta": "الدلتا",
+    "upper_egypt": "صعيد مصر",
+    "sinai": "سيناء"
+  },
+  "payment": {
+    "method": {
+      "card": "بطاقة ائتمان/مدين (Paymob)",
+      "applePay": "Apple Pay",
+      "instapay": "Instapay",
+      "bankTransfer": "تحويل بنكي",
+      "cod": "الدفع عند الاستلام",
+      "fawry": "فوري"
+    }
+  },
+  "drawer": {
+    "order_tracking": "تتبع الطلب",
+    "settings": "الإعدادات",
+    "register_as_seller": "التسجيل كبائع",
+    "seller_center": "مركز البائع",
+    "seller_registration_status": "تسجيل البائع وحالته",
+    "privacy_policy": "سياسة الخصوصية",
+    "terms_conditions": "الشروط والأحكام",
+    "return_policy": "سياسة الإرجاع",
+    "shipping_policy": "سياسة الشحن",
+    "policies": "السياسات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "arabic_rtl": "العربية (من اليمين إلى اليسار)",
+    "english_ltr": "الإنجليزية (من اليسار إلى اليمين)",
+    "notification_preferences": "تفضيلات الإشعارات",
+    "order_updates": "تحديثات الطلبات",
+    "offers_promotions": "العروض والترويجات",
+    "save_preferences": "حفظ التفضيلات",
+    "preferences_saved": "تم حفظ التفضيلات بنجاح.",
+    "security": "الأمان",
+    "email_verification": "التحقق من البريد الإلكتروني",
+    "email_verified": "البريد الإلكتروني موثّق",
+    "email_not_verified": "البريد الإلكتروني غير موثّق",
+    "refresh": "تحديث",
+    "send_verification_email": "إرسال رسالة التحقق",
+    "change_password": "تغيير كلمة المرور",
+    "verification_email_sent": "تم إرسال رسالة التحقق.",
+    "verification_status_refreshed": "تم تحديث حالة التحقق.",
+    "no_email_found": "لا يوجد بريد إلكتروني لهذا الحساب.",
+    "appearance": "المظهر",
+    "theme_system": "النظام",
+    "theme_light": "فاتح",
+    "theme_dark": "داكن",
+    "dark_mode": "الوضع الداكن",
+    "dark_mode_on": "الوضع الداكن مفعل",
+    "dark_mode_off": "الوضع الفاتح مفعل",
+    "updating_theme": "جاري تحديث المظهر..."
+  },
+  "seller": {
+    "dashboard": "لوحة البائع",
+    "orders": "طلبات البائع",
+    "sync_channels": "مزامنة القنوات",
+    "no_orders": "لا توجد طلبات للبائع بعد.",
+    "waiting_approval": {
+      "title": "بانتظار الموافقة",
+      "description": "حسابك كبائع قيد المراجعة.",
+      "notification_info": "سنقوم بإشعارك داخل التطبيق وبالبريد الإلكتروني عند الموافقة."
+    },
+    "dashboard_labels": {
+      "orders_management": "إدارة الطلبات",
+      "returns_management": "إدارة المرتجعات",
+      "customer_prefix": "العميل: ",
+      "order_prefix": "طلب #",
+      "no_orders": "لا توجد طلبات للبائع بعد.",
+      "no_returns": "لا توجد طلبات إرجاع حتى الآن.",
+      "return_prefix": "إرجاع #",
+      "return_approved": "تم قبول طلب الإرجاع.",
+      "return_rejected": "تم رفض طلب الإرجاع.",
+      "return_review_failed": "فشلت مراجعة الإرجاع: {error}",
+      "order_updated": "تم تحديث الطلب إلى {status}",
+      "order_update_failed": "فشل تحديث الطلب: {error}",
+      "seller_decision_completed": "تم تسجيل قرار البائع",
+      "switch_to_customer_mode": "التحويل لوضع العميل",
+      "control_center": "مركز تحكم البائع",
+      "pending_orders": "الطلبات المعلقة",
+      "returned_orders": "الطلبات المرتجعة",
+      "earnings_sales": "الأرباح والمبيعات",
+      "products_management": "إدارة المنتجات"
+    },
+    "products": {
+      "add": "إضافة منتج",
+      "edit": "تعديل المنتج",
+      "delete": "حذف المنتج",
+      "no_products": "لا توجد منتجات بعد.",
+      "title_ar": "العنوان بالعربية",
+      "title_en": "العنوان بالإنجليزية",
+      "selling_price": "سعر البيع",
+      "stock": "المخزون",
+      "image_url": "رابط الصورة",
+      "approved": "مقبول",
+      "approval_pending": "بانتظار المراجعة",
+      "created_pending_review": "تم إرسال المنتج وبانتظار مراجعة الإدارة.",
+      "updated_success": "تم تحديث المنتج بنجاح.",
+      "deleted_success": "تم حذف المنتج بنجاح.",
+      "validation_failed": "يرجى استكمال الحقول المطلوبة بقيم صحيحة.",
+      "confirm_delete": "هل تريد حذف هذا المنتج نهائيًا؟",
+      "action_failed": "تعذر تنفيذ الإجراء على المنتج: {error}"
+    }
+  },
+  "supplier": {
+    "dashboard": "لوحة المورد",
+    "operations": "عمليات المورد",
+    "metrics": {
+      "dropshipping_products": "منتجات الدروب شيبنج",
+      "orders_awaiting_shipment": "طلبات بانتظار الشحن",
+      "sync_jobs": "مهام المزامنة"
+    },
+    "sync": {
+      "channels": "قنوات المزامنة",
+      "api_feed": "مزامنة API",
+      "csv_queue": "قائمة استيراد CSV",
+      "stock_updates": "تحديثات المخزون والشحن"
+    }
+  },
+  "admin": {
+    "dashboard": "لوحة الإدارة",
+    "control_panel": "لوحة تحكم المسؤول",
+    "metrics": {
+      "users": "المستخدمون",
+      "sellers": "البائعون",
+      "products": "المنتجات",
+      "orders": "الطلبات",
+      "returns": "الإرجاعات",
+      "commissions": "العمولات"
+    },
+    "sections": {
+      "pending_sellers": "طلبات اعتماد البائعين (صفحات)",
+      "no_pending_sellers": "لا توجد طلبات بائعين معلقة.",
+      "unnamed_seller": "بائع بدون اسم",
+      "load_more": "تحميل المزيد",
+      "products_moderation": "مراجعة المنتجات",
+      "no_products": "لا توجد منتجات.",
+      "order_prefix": "طلب #",
+      "seller_prefix": "البائع: ",
+      "orders_management": "إدارة الطلبات",
+      "no_orders": "لا توجد طلبات.",
+      "returns_override": "التحكم في المرتجعات",
+      "no_returns": "لا توجد طلبات إرجاع.",
+      "return_prefix": "إرجاع #",
+      "order_customer_prefix": "طلب #",
+      "customer_prefix": "العميل: ",
+      "advanced_stats": "إحصاءات متقدمة",
+      "discount_codes": "أكواد الخصم",
+      "offers_promotions": "العروض والترويجات",
+      "notifications_panel": "إشعارات الإدارة"
+    },
+    "orders": {
+      "statuses": {
+        "pending": "قيد الانتظار",
+        "processing": "قيد المعالجة",
+        "shipped": "تم الشحن",
+        "delivered": "تم التسليم",
+        "returned": "تم الإرجاع"
+      }
+    },
+    "returns": {
+      "statuses": {
+        "pending_seller_review": "بانتظار مراجعة البائع",
+        "seller_approved": "مقبول من البائع",
+        "seller_rejected": "مرفوض من البائع",
+        "admin_approved": "مقبول من الإدارة",
+        "admin_rejected": "مرفوض من الإدارة"
+      }
+    },
+    "refresh": "تحديث",
+    "stats": {
+      "total_revenue": "إجمالي الإيرادات",
+      "active_orders": "الطلبات النشطة",
+      "sales_per_seller": "مبيعات كل بائع",
+      "revenue_by_category": "الإيرادات حسب الفئة",
+      "uncategorized": "غير مصنف"
+    },
+    "coupons": {
+      "add": "إضافة كوبون",
+      "none": "لا توجد أكواد خصم.",
+      "code": "رمز الكوبون",
+      "type": "النوع",
+      "value": "القيمة",
+      "min_order": "الحد الأدنى للطلب",
+      "active": "مفعل",
+      "types": {
+        "percent": "نسبة مئوية",
+        "fixed": "قيمة ثابتة"
+      }
+    },
+    "offers": {
+      "add": "إضافة عرض",
+      "none": "لا توجد عروض.",
+      "title_ar": "العنوان بالعربية",
+      "title_en": "العنوان بالإنجليزية",
+      "discount_percent": "نسبة الخصم %"
+    },
+    "notifications": {
+      "mark_read": "تحديد كمقروء"
+    },
+    "demo": {
+      "seed_data": "تحميل بيانات تجريبية",
+      "seed_success": "تم تحميل البيانات التجريبية بنجاح.",
+      "seed_failed": "فشل تحميل البيانات التجريبية: {error}"
+    },
+    "actions": {
+      "approve": "قبول",
+      "reject": "رفض",
+      "suspend": "تعليق",
+      "delete": "حذف",
+      "update_status": "تحديث الحالة",
+      "tracking_number": "رقم التتبع",
+      "set_tracking": "تعيين التتبع",
+      "save_tracking": "حفظ التتبع"
+    }
+  },
+  "orders": {
+    "label": "طلب #",
+    "none": "لا توجد طلبات بعد.",
+    "status_prefix": "الحالة: ",
+    "tracking_prefix": "رقم التتبع: ",
+    "return_prefix": "الإرجاع: ",
+    "request_return": "طلب إرجاع",
+    "reason": "السبب",
+    "details_optional": "التفاصيل (اختياري)",
+    "confirm_return_request": "أؤكد إرسال طلب الإرجاع.",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "return_only_delivered": "يمكن طلب الإرجاع للطلبات المسلّمة فقط.",
+    "return_exists": "يوجد بالفعل طلب إرجاع لهذا الطلب.",
+    "return_submitted": "تم إرسال طلب الإرجاع بنجاح.",
+    "statuses": {
+      "pending": "قيد الانتظار",
+      "processing": "قيد المعالجة",
+      "shipped": "تم الشحن",
+      "delivered": "تم التسليم",
+      "returned": "تم الإرجاع",
+      "confirmed": "مؤكد",
+      "sent_to_vendor": "تم الإرسال للبائع"
+    },
+    "return_reasons": {
+      "damaged_item": "المنتج تالف",
+      "wrong_item": "منتج خاطئ",
+      "missing_parts": "أجزاء ناقصة",
+      "not_as_described": "غير مطابق للوصف",
+      "other": "أخرى"
+    }
+  },
+  "seller_center": {
+    "steps_info": "كل خطوات تسجيل البائع متاحة من قسم مركز البائع في القائمة الجانبية.",
+    "submitted_success": "تم الإرسال بنجاح، بانتظار موافقة الإدارة.",
+    "submission_failed": "فشل إرسال الطلب: {error}",
+    "field_required": "{field} مطلوب",
+    "supplier_managed": "تتم إدارة حسابات الموردين من لوحة المورد.",
+    "status": {
+      "approved": "مقبول",
+      "pending": "بانتظار الموافقة"
+    },
+    "account_status": "حالة الحساب",
+    "open_dashboard": "فتح لوحة البائع",
+    "seller_orders": "طلبات البائع",
+    "form": {
+      "title": "التسجيل كبائع",
+      "merchant_name": "اسم التاجر",
+      "store_name": "اسم المتجر",
+      "owner_name": "اسم المالك",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "address": "العنوان",
+      "id_document": "رابط مستند الهوية",
+      "commercial_registration": "رابط السجل التجاري",
+      "submitting": "جاري الإرسال...",
+      "submit_button": "إرسال للموافقة",
+      "tax_card": "رابط البطاقة الضريبية"
+    },
+    "control": {
+      "title": "مركز البائع",
+      "seller_orders": "طلبات البائع",
+      "returns_refunds": "المرتجعات والاسترداد",
+      "earnings_commission": "الأرباح والعمولة",
+      "admin_quick_access": "وصول سريع للإدارة",
+      "open_admin_dashboard": "فتح لوحة الإدارة"
+    },
+    "optional": "اختياري",
+    "upload_failed": "فشل رفع الملف: {error}",
+    "file_read_failed": "تعذر قراءة الملف المختار.",
+    "national_id_required": "مستند الهوية الوطنية مطلوب.",
+    "document_uploaded": "تم رفع المستند",
+    "no_document_selected": "لم يتم اختيار مستند",
+    "required_documents": "المستندات المطلوبة",
+    "optional_documents": "مستندات اختيارية"
+  },
+  "order_tracking": {
+    "title": "تتبع الطلب",
+    "none": "لا توجد طلبات للتتبع."
+  },
+  "profile": {
+    "edit": "تعديل الملف الشخصي",
+    "switch_to_seller": "التبديل إلى وضع البائع",
+    "account_status": "حالة الحساب"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "none": "لا توجد إشعارات بعد.",
+    "types": {
+      "seller_approved": {
+        "title": "تمت الموافقة على البائع",
+        "body": "تمت الموافقة على حساب البائع الخاص بك."
+      },
+      "seller_suspended": {
+        "title": "تم تعليق البائع",
+        "body": "تم تعليق حساب البائع الخاص بك."
+      },
+      "seller_registration": {
+        "title": "طلب تسجيل بائع جديد",
+        "body": "تم إرسال طلب تسجيل بائع جديد."
+      },
+      "new_order": {
+        "title": "طلب جديد",
+        "body": "تم إنشاء طلب جديد."
+      },
+      "promotion": {
+        "title": "عرض جديد",
+        "body": "يتوفر الآن عرض جديد."
+      },
+      "order_status": {
+        "title": "تحديث حالة الطلب",
+        "body": "تم تغيير حالة الطلب #{id}."
+      },
+      "new_return": {
+        "title": "طلب إرجاع جديد",
+        "body": "تم إرسال طلب إرجاع جديد."
+      },
+      "return_requested": {
+        "title": "تم طلب الإرجاع",
+        "body": "طلب الإرجاع #{id} بانتظار المراجعة."
+      },
+      "return_approved": {
+        "title": "تم قبول الإرجاع",
+        "body": "تم قبول طلب الإرجاع #{id}."
+      },
+      "return_rejected": {
+        "title": "تم رفض الإرجاع",
+        "body": "تم رفض طلب الإرجاع #{id}."
+      },
+      "return_status": {
+        "title": "تحديث حالة الإرجاع",
+        "body": "تم تغيير حالة طلب الإرجاع #{id}."
+      },
+      "return_admin_override": {
+        "title": "تعديل من الإدارة",
+        "body": "تم تعديل طلب الإرجاع #{id} بواسطة الإدارة."
+      }
+    }
+  },
+  "favorites": {
+    "none": "لا توجد عناصر مفضلة حتى الآن.",
+    "removed": "تمت الإزالة من المفضلة."
+  },
+  "static_pages": {
+    "no_content": "لم يتم نشر محتوى بعد."
+  },
+  "errors": {
+    "no_data": "لا توجد بيانات.",
+    "network": "حدث خطأ في الشبكة."
+  },
+  "roles": {
+    "customer": "عميل",
+    "seller": "بائع",
+    "supplier": "مورد",
+    "admin": "مسؤول",
+    "guest": "زائر"
+  },
+  "common": {
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "phone": "الهاتف",
+    "phone_number": "رقم الهاتف",
+    "settings": "الإعدادات",
+    "order_tracking": "تتبع الطلب",
+    "currency_egp": "ج.م",
+    "notification": "إشعار",
+    "product": "منتج",
+    "item": "عنصر",
+    "user": "مستخدم",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "ok": "حسناً",
+    "login_required": "يرجى تسجيل الدخول أولاً."
+  },
+  "product": {
+    "details": "تفاصيل المنتج",
+    "description": "الوصف",
+    "no_description": "لا يوجد وصف متاح.",
+    "in_stock": "متوفر في المخزون ({count})",
+    "out_of_stock": "غير متوفر حالياً",
+    "add_to_cart": "إضافة إلى السلة",
+    "added_to_cart": "تمت إضافة المنتج إلى السلة.",
+    "add_to_cart_failed": "فشلت إضافة المنتج إلى السلة: {error}",
+    "add_to_favorites": "إضافة إلى المفضلة",
+    "remove_from_favorites": "إزالة من المفضلة",
+    "favorite_failed": "فشل تحديث المفضلة: {error}",
+    "reviews": "المراجعات",
+    "no_reviews": "لا توجد مراجعات بعد."
+  },
+  "catalog": {
+    "empty": "لا توجد منتجات مطابقة للفلاتر الحالية.",
+    "filter": {
+      "category": "الفئة",
+      "all_categories": "كل الفئات",
+      "discount_only": "خصومات فقط",
+      "best_sellers": "الأكثر مبيعًا",
+      "rating_4_plus": "تقييم 4+",
+      "price_range": "نطاق السعر",
+      "new_arrivals": "وصل حديثًا"
+    },
+    "sort": {
+      "label": "الترتيب",
+      "newest": "الأحدث",
+      "price_low_high": "السعر: من الأقل للأعلى",
+      "price_high_low": "السعر: من الأعلى للأقل",
+      "rating": "الأعلى تقييمًا",
+      "best_sellers": "الأكثر مبيعًا"
+    }
+  }
+}

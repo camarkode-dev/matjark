@@ -99,6 +99,8 @@
       "phone_setup_required": "تسجيل الدخول برقم الهاتف غير مُفعّل في إعدادات Firebase Authentication.",
       "phone_auth_localhost_unsupported": "رمز التحقق عبر الهاتف لا يعمل على Web من localhost. استخدم Android أو iOS أو شغّل التطبيق على دومين منشور مثل Firebase Hosting.",
       "recaptcha_check_failed": "فشل تحقق reCAPTCHA. راجع النطاقات المصرح بها ثم أعد المحاولة.",
+      "firebase_config_invalid": "Firebase Web configuration is invalid. Check apiKey, authDomain, and authorized domains.",
+      "email_password_not_enabled": "Email/password sign-in is not enabled in Firebase Authentication.",
       "unsupported_language": "اللغة غير مدعومة.",
       "user_not_signed_in": "المستخدم غير مسجل الدخول.",
       "unexpected": "حدث خطأ غير متوقع."

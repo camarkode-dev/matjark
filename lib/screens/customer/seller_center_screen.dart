@@ -7,7 +7,9 @@ import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/seller_service.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
+import '../../widgets/remote_image.dart';
 
 class SellerCenterScreen extends StatefulWidget {
   const SellerCenterScreen({super.key});
@@ -193,11 +195,10 @@ class _SellerCenterScreenState extends State<SellerCenterScreen> {
       child: SizedBox(
         width: 40,
         height: 40,
-        child: Image.network(
-          url,
+        child: RemoteImage(
+          imageUrl: url,
           fit: BoxFit.cover,
-          webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-          errorBuilder: (_, __, ___) => Container(
+          errorWidget: Container(
             color: AppTheme.panelSoft(context),
             alignment: Alignment.center,
             child: const Icon(
@@ -457,7 +458,10 @@ class _SellerCenterScreenState extends State<SellerCenterScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
-      appBar: AppBar(title: Text('seller_center.control.title'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('seller_center.control.title'.tr()),
+      ),
       drawer: const MarketplaceDrawer(),
       body: switch (effectiveRole) {
         UserRole.customer => user.sellerRequestStatus == 'pending'

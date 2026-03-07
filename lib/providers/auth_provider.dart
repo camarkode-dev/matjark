@@ -23,7 +23,10 @@ class AuthProvider extends ChangeNotifier {
 
   AppUser? _currentUser;
   AppUser? get currentUser => _currentUser;
-  bool get isSignedIn => _currentUser != null;
+  bool get isSignedIn => _currentUser != null || hasFirebaseSession;
+  bool get hasFirebaseSession =>
+      fs.firebaseAvailable && FirebaseAuth.instance.currentUser != null;
+  bool get isProfileLoading => hasFirebaseSession && _currentUser == null;
   bool _isAdmin = false;
   bool get isAdmin => _isAdmin;
   String get landingRoute => _isAdmin ? '/admin' : routeForUser(_currentUser);
@@ -53,6 +56,9 @@ class AuthProvider extends ChangeNotifier {
       try {
         if (snap.exists) {
           final profile = AppUser.fromMap(snap.data()!, fallbackUid: user.uid);
+          if (_shouldPromoteAdminProfile(user, profile)) {
+            unawaited(_promoteAdminProfile(user));
+          }
           final derivedAdmin = _isAdmin ||
               _isAdminByEmail(user) ||
               profile.role == UserRole.admin;
@@ -106,6 +112,37 @@ class AuthProvider extends ChangeNotifier {
     return email.isNotEmpty && email == AppStrings.adminEmail.toLowerCase();
   }
 
+  bool _shouldPromoteAdminProfile(User firebaseUser, AppUser profile) {
+    return _isAdminByEmail(firebaseUser) &&
+        (profile.role != UserRole.admin ||
+            !profile.isApproved ||
+            profile.status != 'approved');
+  }
+
+  Future<void> _promoteAdminProfile(User firebaseUser) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .set({
+        'uid': firebaseUser.uid,
+        'email': firebaseUser.email,
+        'name': firebaseUser.displayName,
+        'phone': firebaseUser.phoneNumber,
+        'role': UserRole.admin.name,
+        'status': 'approved',
+        'isApproved': true,
+        'sellerRequestStatus': 'none',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      await firebaseUser.getIdToken(true);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Admin profile promotion failed: $error');
+      }
+    }
+  }
+
   AppUser _fallbackUserForFirebaseUser(User user) {
     return _normalizeUserRole(AppUser(
       uid: user.uid,
@@ -122,19 +159,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   AppUser _normalizeUserRole(AppUser user) {
-    if (!_isAdmin) {
-      // Firestore rules in this project rely on auth token claims for admin.
-      // If the profile says "admin" without claims, downgrade to customer
-      // to avoid navigating to unauthorized admin-only screens.
-      if (user.role == UserRole.admin) {
-        return user.copyWith(
-          role: UserRole.customer,
-          status: 'approved',
-          isApproved: true,
-        );
-      }
-      return user;
-    }
+    if (!_isAdmin) return user;
     if (user.role == UserRole.admin && user.isApproved) return user;
     return user.copyWith(
       role: UserRole.admin,

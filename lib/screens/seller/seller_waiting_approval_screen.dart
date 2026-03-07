@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 
 class SellerWaitingApprovalScreen extends StatelessWidget {
   const SellerWaitingApprovalScreen({super.key});
@@ -25,6 +26,7 @@ class SellerWaitingApprovalScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
       appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(),
         title: Text('seller.waiting_approval.title'.tr()),
         actions: [
           IconButton(onPressed: auth.signOut, icon: const Icon(Icons.logout)),

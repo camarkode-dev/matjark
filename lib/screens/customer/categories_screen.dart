@@ -6,11 +6,14 @@ import '../../core/theme.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
 import '../../widgets/product_card.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  const CategoriesScreen({super.key});
+  final String? initialQuery;
+
+  const CategoriesScreen({super.key, this.initialQuery});
 
   @override
   State<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -36,6 +39,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   void initState() {
     super.initState();
+    final initialQuery = (widget.initialQuery ?? '').trim();
+    if (initialQuery.isNotEmpty) {
+      _searchController.text = initialQuery;
+    }
     _loadInitial();
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_updateSuggestions);
@@ -189,7 +196,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final products = _visibleProducts;
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
-      appBar: AppBar(title: Text('nav.categories'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('nav.categories'.tr()),
+      ),
       drawer: const MarketplaceDrawer(),
       body: Column(
         children: [

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -55,7 +56,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
       drawer: const MarketplaceDrawer(),
-      appBar: AppBar(title: Text('nav.profile'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('nav.profile'.tr()),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
         children: [

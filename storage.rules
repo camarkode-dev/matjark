@@ -5,44 +5,131 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function role() {
+      return isSignedIn() && request.auth.token.role is string
+        ? request.auth.token.role
+        : null;
+    }
+
     function isAdmin() {
-      return isSignedIn() &&
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        role() == 'admin' ||
         (
-          request.auth.token.admin == true ||
-          request.auth.token.role == 'admin' ||
+          request.auth.token.email is string &&
           request.auth.token.email == 'ca.matjark@gmail.com'
-        );
+        ) ||
+        (
+          firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        )
+      );
     }
 
-    // Seller registration documents.
-    // Allowed for authenticated users to upload only under seller_documents/{uid}/...
-    match /seller_documents/{userId}/{allPaths=**} {
+    function isApprovedVendor() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (
+          (
+            role() == 'seller' ||
+            role() == 'vendor' ||
+            (
+              firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+              (
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'seller' ||
+                firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'vendor'
+              )
+            )
+          ) &&
+          (
+            request.auth.token.sellerApproved == true ||
+            request.auth.token.vendorApproved == true ||
+            (
+              firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+              firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isApproved == true
+            )
+          )
+        )
+      );
+    }
+
+    function validImageUpload() {
+      return request.resource != null &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    function productExists(productId) {
+      return firestore.exists(/databases/(default)/documents/products/$(productId));
+    }
+
+    function productOwnedByVendor(productId, vendorId) {
+      return productExists(productId) && (
+        firestore.get(/databases/(default)/documents/products/$(productId)).data.vendorId == vendorId ||
+        firestore.get(/databases/(default)/documents/products/$(productId)).data.sellerId == vendorId
+      );
+    }
+
+    // Canonical marketplace product image structure.
+    match /product_images/{vendorId}/{productId}/{imageName} {
+      allow read: if true;
+
+      allow create, update: if isAdmin() || (
+        isApprovedVendor() &&
+        request.auth.uid == vendorId &&
+        validImageUpload() &&
+        (
+          productId == 'drafts' ||
+          productOwnedByVendor(productId, vendorId)
+        )
+      );
+
+      allow delete: if isAdmin() || (
+        isApprovedVendor() &&
+        request.auth.uid == vendorId &&
+        (
+          productId == 'drafts' ||
+          productOwnedByVendor(productId, vendorId)
+        )
+      );
+    }
+
+    // Backward compatibility for already-uploaded product URLs.
+    match /product_images/{vendorId}/{legacyFile} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || (
+        isApprovedVendor() && request.auth.uid == vendorId
+      );
+    }
+
+    match /category_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /offer_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /payment_receipts/{userId}/{allPaths=**} {
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow create, update: if isSignedIn()
-        && request.auth.uid == userId
-        && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*|application/pdf');
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create, update, delete: if isAdmin() || (
+        isSignedIn() &&
+        request.auth.uid == userId &&
+        validImageUpload()
+      );
     }
 
-    // Product/media uploads owned by sellers or admins.
-    match /product_images/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    match /return_request_images/{userId}/{allPaths=**} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create, update, delete: if isAdmin() || (
+        isSignedIn() &&
+        request.auth.uid == userId &&
+        validImageUpload()
+      );
     }
 
-    // Category images managed by admin.
-    match /category_images/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /offer_images/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Deny all other paths by default.
     match /{allPaths=**} {
       allow read, write: if false;
     }

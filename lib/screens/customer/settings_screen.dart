@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart' as auth_provider;
 import '../../providers/theme_provider.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
 import '../splash_screen.dart';
 
@@ -79,6 +80,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Navigator.of(context).pushNamed('/forgot-password');
   }
 
+  Future<void> _openChangePasswordDialog() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final email = firebaseUser?.email?.trim() ?? '';
+    if (firebaseUser == null || email.isEmpty) {
+      return;
+    }
+
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    bool submitting = false;
+    bool obscureOld = true;
+    bool obscureNew = true;
+    final isArabic = context.locale.languageCode == 'ar';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('settings.change_password'.tr()),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: oldPasswordController,
+                obscureText: obscureOld,
+                decoration: InputDecoration(
+                  labelText: context.locale.languageCode == 'ar'
+                      ? 'كلمة المرور القديمة'
+                      : 'Current password',
+                  suffixIcon: IconButton(
+                    onPressed: () =>
+                        setDialogState(() => obscureOld = !obscureOld),
+                    icon: Icon(
+                      obscureOld
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: newPasswordController,
+                obscureText: obscureNew,
+                decoration: InputDecoration(
+                  labelText: context.locale.languageCode == 'ar'
+                      ? 'كلمة المرور الجديدة'
+                      : 'New password',
+                  suffixIcon: IconButton(
+                    onPressed: () =>
+                        setDialogState(() => obscureNew = !obscureNew),
+                    icon: Icon(
+                      obscureNew
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await _sendPasswordReset();
+                  },
+                  child: Text(
+                    context.locale.languageCode == 'ar'
+                        ? 'هل نسيت كلمة المرور؟'
+                        : 'Forgot password?',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(),
+              child: Text('common.cancel'.tr()),
+            ),
+            ElevatedButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final oldPassword = oldPasswordController.text.trim();
+                      final newPassword = newPasswordController.text.trim();
+                      if (oldPassword.isEmpty || newPassword.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              context.locale.languageCode == 'ar'
+                                  ? 'أدخل كلمة المرور القديمة وكلمة جديدة لا تقل عن 6 أحرف.'
+                                  : 'Enter the current password and a new password with at least 6 characters.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      setDialogState(() => submitting = true);
+                      try {
+                        final credential = EmailAuthProvider.credential(
+                          email: email,
+                          password: oldPassword,
+                        );
+                        await firebaseUser.reauthenticateWithCredential(
+                          credential,
+                        );
+                        await firebaseUser.updatePassword(newPassword);
+                        if (!mounted || !dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop();
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isArabic
+                                  ? 'تم تحديث كلمة المرور بنجاح.'
+                                  : 'Password updated successfully.',
+                            ),
+                          ),
+                        );
+                      } on FirebaseAuthException catch (error) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(
+                            content: Text(error.message ?? error.code),
+                          ),
+                        );
+                      } finally {
+                        if (context.mounted) {
+                          setDialogState(() => submitting = false);
+                        }
+                      }
+                    },
+              child: submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text('settings.change_password'.tr()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// helper for launching the mail client so user can follow a verification link
   /// after receiving an email from Firebase.  Works on Android, iOS and web.
   Future<void> _openEmailApp() async {
@@ -145,7 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
-      appBar: AppBar(title: Text('settings.title'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('settings.title'.tr()),
+      ),
       drawer: const MarketplaceDrawer(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 18),
@@ -258,7 +411,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: _securityBusy ? null : _sendPasswordReset,
+                  onPressed: _securityBusy ? null : _openChangePasswordDialog,
                   icon: const Icon(Icons.lock_reset_outlined),
                   label: Text('settings.change_password'.tr()),
                 ),

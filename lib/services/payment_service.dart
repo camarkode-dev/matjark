@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PaymentMethodType { card, applePay, instapay, bankTransfer, cod, fawry }
 
@@ -41,19 +41,40 @@ class PaymentResult {
 }
 
 class PaymentService {
+  final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: 'us-central1');
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   Future<Map<String, dynamic>> calculateOrderTotals({
     required List<Map<String, dynamic>> items,
     required String governorate,
     String? discountCode,
   }) async {
-    final callable = _functions.httpsCallable('calculateOrderTotalsEgypt');
+    final callable = _functions.httpsCallable('calculateCheckoutQuote');
     final response = await callable.call({
-      'items': items,
-      'governorate': governorate,
-      'discountCode': discountCode ?? '',
+      'lines': items,
+      'shippingZone': governorate,
+      'couponCode': discountCode ?? '',
+    });
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<Map<String, dynamic>> placeMarketplaceOrder({
+    required List<Map<String, dynamic>> items,
+    required Map<String, dynamic> shippingAddress,
+    required String governorate,
+    required PaymentMethodType paymentMethod,
+    String? discountCode,
+    Map<String, dynamic>? paymentDetails,
+  }) async {
+    final callable = _functions.httpsCallable('placeMarketplaceOrder');
+    final response = await callable.call({
+      'lines': items,
+      'shippingAddress': shippingAddress,
+      'shippingZone': governorate,
+      'paymentMethod': paymentMethod.name,
+      'couponCode': discountCode ?? '',
+      'paymentDetails': paymentDetails ?? const <String, dynamic>{},
     });
     return Map<String, dynamic>.from(response.data as Map);
   }
@@ -64,29 +85,20 @@ class PaymentService {
     required String orderId,
     required String customerId,
   }) async {
-    final referenceId = 'pay_${DateTime.now().millisecondsSinceEpoch}_$orderId';
     switch (method) {
       case PaymentMethodType.cod:
-        return _recordPayment(
+        return _createGatewayIntent(
           orderId: orderId,
           customerId: customerId,
           amount: amount,
           provider: 'cod',
-          status: 'pending_collection',
-          referenceId: referenceId,
-          requiresManualReview: false,
-          message: 'COD selected. Payment will be collected on delivery.',
         );
       case PaymentMethodType.bankTransfer:
-        return _recordPayment(
+        return _createGatewayIntent(
           orderId: orderId,
           customerId: customerId,
           amount: amount,
           provider: 'bank_transfer',
-          status: 'awaiting_transfer',
-          referenceId: referenceId,
-          requiresManualReview: true,
-          message: 'Bank transfer instructions generated.',
         );
       case PaymentMethodType.instapay:
         return _createGatewayIntent(
@@ -94,7 +106,6 @@ class PaymentService {
           customerId: customerId,
           amount: amount,
           provider: 'instapay',
-          fallbackReferenceId: referenceId,
         );
       case PaymentMethodType.card:
         return _createGatewayIntent(
@@ -102,7 +113,6 @@ class PaymentService {
           customerId: customerId,
           amount: amount,
           provider: 'paymob_card',
-          fallbackReferenceId: referenceId,
         );
       case PaymentMethodType.fawry:
         return _createGatewayIntent(
@@ -110,7 +120,6 @@ class PaymentService {
           customerId: customerId,
           amount: amount,
           provider: 'fawry',
-          fallbackReferenceId: referenceId,
         );
       case PaymentMethodType.applePay:
         return _createGatewayIntent(
@@ -118,7 +127,6 @@ class PaymentService {
           customerId: customerId,
           amount: amount,
           provider: 'apple_pay',
-          fallbackReferenceId: referenceId,
         );
     }
   }
@@ -128,10 +136,9 @@ class PaymentService {
     required String customerId,
     required double amount,
     required String provider,
-    required String fallbackReferenceId,
   }) async {
     try {
-      final callable = _functions.httpsCallable('createPaymentIntentEgypt');
+      final callable = _functions.httpsCallable('createPaymentIntent');
       final response = await callable.call({
         'orderId': orderId,
         'customerId': customerId,
@@ -140,69 +147,45 @@ class PaymentService {
         'currency': 'EGP',
       });
       final data = Map<String, dynamic>.from(response.data as Map);
-      final referenceId = (data['referenceId'] ?? fallbackReferenceId)
-          .toString();
-      final status = (data['status'] ?? 'initiated').toString();
-      final metadata = Map<String, dynamic>.from(data['metadata'] ?? {});
-
-      return _recordPayment(
-        orderId: orderId,
-        customerId: customerId,
-        amount: amount,
-        provider: provider,
-        status: status,
-        referenceId: referenceId,
-        requiresManualReview: false,
+      return PaymentResult(
+        status: (data['status'] ?? 'initiated').toString(),
+        referenceId: (data['referenceId'] ?? '').toString(),
+        requiresManualReview: (data['requiresManualReview'] ?? false) == true,
+        provider: (data['provider'] ?? provider).toString(),
         message: (data['message'] ?? 'Payment intent created.').toString(),
-        metadata: metadata,
+        metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
       );
-    } catch (_) {
-      // Fallback for local dev/sandbox where gateway function is not deployed.
-      return _recordPayment(
-        orderId: orderId,
-        customerId: customerId,
-        amount: amount,
-        provider: provider,
-        status: 'initiated',
-        referenceId: fallbackReferenceId,
-        requiresManualReview: false,
-        message: 'Payment intent created in local sandbox mode.',
-        metadata: const {'mode': 'sandbox'},
+    } on FirebaseFunctionsException {
+      final legacyCallable =
+          _functions.httpsCallable('createPaymentIntentEgypt');
+      final response = await legacyCallable.call({
+        'orderId': orderId,
+        'customerId': customerId,
+        'amount': amount,
+        'provider': provider,
+        'currency': 'EGP',
+      });
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return PaymentResult(
+        status: (data['status'] ?? 'initiated').toString(),
+        referenceId: (data['referenceId'] ?? '').toString(),
+        requiresManualReview: (data['requiresManualReview'] ?? false) == true,
+        provider: (data['provider'] ?? provider).toString(),
+        message: (data['message'] ?? 'Payment intent created.').toString(),
+        metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
       );
     }
   }
 
-  Future<PaymentResult> _recordPayment({
-    required String orderId,
+  Future<void> clearCartItem({
     required String customerId,
-    required double amount,
-    required String provider,
-    required String status,
-    required String referenceId,
-    required bool requiresManualReview,
-    required String message,
-    Map<String, dynamic> metadata = const {},
-  }) async {
-    await _db.collection('payments').doc(referenceId).set({
-      'referenceId': referenceId,
-      'orderId': orderId,
-      'customerId': customerId,
-      'amount': amount,
-      'provider': provider,
-      'status': status,
-      'requiresManualReview': requiresManualReview,
-      'message': message,
-      'metadata': metadata,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    return PaymentResult(
-      status: status,
-      referenceId: referenceId,
-      requiresManualReview: requiresManualReview,
-      provider: provider,
-      message: message,
-      metadata: metadata,
-    );
+    required String cartItemId,
+  }) {
+    return _db
+        .collection('carts')
+        .doc(customerId)
+        .collection('items')
+        .doc(cartItemId)
+        .delete();
   }
 }

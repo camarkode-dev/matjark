@@ -1,0 +1,598 @@
+{
+  "app": {
+    "title": "Matjark"
+  },
+  "welcome_back": "Welcome Back",
+  "login_to_account": "Login to your account",
+  "login": "Login",
+  "signing_in": "Signing in...",
+  "sign_in_with_google": "Sign in with Google",
+  "or": "Or",
+  "don't_have_account": "Don't have an account?",
+  "register": "Register",
+  "create_account": "Create Account",
+  "already_have_account": "Already have an account? Log in",
+  "creating_account": "Creating account...",
+  "name": "Name",
+  "email": "Email",
+  "password": "Password",
+  "confirm_password": "Confirm password",
+  "passwords_dont_match": "Passwords do not match",
+  "name_required": "Name is required",
+  "email_invalid": "Invalid email address",
+  "password_min_6": "Password must be at least 6 characters",
+  "role": "Role",
+  "phone_number": "Phone Number",
+  "phone_required": "Phone number is required",
+  "phone_invalid": "Phone number must be at least 10 digits",
+  "send_otp": "Send Code",
+  "sending": "Sending...",
+  "otp_code": "Enter Code",
+  "verify_otp": "Verify Code",
+  "verifying": "Verifying...",
+  "resend_code": "Resend Code",
+  "categories": {
+    "empty": "No categories available."
+  },
+  "featured_products": "Featured Products",
+  "see_all": "See All",
+  "edit_profile": "Edit Profile",
+  "logout": "Logout",
+  "phone": "Phone",
+  "seller_dashboard": "Seller Dashboard",
+  "supplier_dashboard": "Supplier Dashboard",
+  "admin_dashboard": "Admin Dashboard",
+  "customer": "Customer",
+  "auth": {
+    "welcome_back": "Welcome Back",
+    "choose_login_method": "Choose your login method",
+    "email_hint": "user@example.com",
+    "phone_hint": "01012345678",
+    "sent_code_to": "We sent a code to {phone}",
+    "resend_in_seconds": "Resend code in {seconds} seconds",
+    "account_created_success": "Account created successfully",
+    "check_email_to_verify": "Please check your email to verify your account. You can tap the button below to open your mail application.",
+    "open_mail_app": "Open mail app",
+    "create_account_subtitle": "Create your account to get started",
+    "login_to_account": "Login to your account",
+    "login": "Login",
+    "signing_in": "Signing in...",
+    "sign_in_with_google": "Sign in with Google",
+    "or": "Or",
+    "dont_have_account": "Don't have an account?",
+    "register": "Register",
+    "create_account": "Create Account",
+    "already_have_account": "Already have an account? Log in",
+    "creating_account": "Creating account...",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm password",
+    "passwords_dont_match": "Passwords do not match",
+    "name_required": "Name is required",
+    "email_invalid": "Invalid email address",
+    "password_min_6": "Password must be at least 6 characters",
+    "role": "Role",
+    "phone_required": "Phone number is required",
+    "phone_invalid": "Phone number must be at least 10 digits",
+    "send_otp": "Send Code",
+    "sending": "Sending...",
+    "otp_code": "Enter Code",
+    "verify_otp": "Verify Code",
+    "verifying": "Verifying...",
+    "resend_code": "Resend Code",
+    "forgot_password": "Forgot password?",
+    "enter_email_for_reset": "Enter your email to reset password.",
+    "reset_email_sent": "Password reset email has been sent.",
+    "errors": {
+      "network": "Network error, please try again later.",
+      "required": "This field is required",
+      "invalid": "Invalid value",
+      "email_not_found": "No account found with this email.",
+      "wrong_password": "Incorrect password.",
+      "invalid_email": "Please enter a valid email address.",
+      "weak_password": "Password must be at least 6 characters.",
+      "email_in_use": "This email is already registered.",
+      "user_disabled": "This account has been disabled.",
+      "invalid_phone_number": "Invalid phone number.",
+      "too_many_requests": "Too many attempts. Please try again later.",
+      "invalid_verification_code": "Invalid verification code.",
+      "phone_verification_failed": "Phone verification failed. Please try again.",
+      "google_client_id_missing": "Google Sign-In for web is not configured. Set GOOGLE_WEB_CLIENT_ID in your build/run command.",
+      "phone_setup_required": "Phone authentication is not enabled for this Firebase project.",
+      "phone_auth_localhost_unsupported": "Phone OTP is not supported on localhost web. Use Android/iOS or a deployed domain such as Firebase Hosting.",
+      "recaptcha_check_failed": "reCAPTCHA verification failed. Check authorized domains and try again.",
+      "unsupported_language": "Unsupported language.",
+      "user_not_signed_in": "User is not signed in.",
+      "unexpected": "An unexpected error occurred."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "categories": "Categories",
+    "cart": "Cart",
+    "orders": "Orders",
+    "favorites": "Favorites",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "home": {
+    "title": "Home",
+    "categories": "Categories",
+    "featured_products": "Featured Products",
+    "see_all": "See All",
+    "search": "Search",
+    "offers": "Offers",
+    "banner_welcome": "Welcome",
+    "banner_subtitle": "Discover amazing products",
+    "no_featured": "No featured products available."
+  },
+  "cart": {
+    "empty": "Your cart is empty.",
+    "qty_prefix": "Qty: ",
+    "total_prefix": "Total: ",
+    "checkout": "Checkout",
+    "increase_qty": "Increase quantity",
+    "decrease_qty": "Decrease quantity",
+    "remove_item": "Remove item",
+    "update_failed": "Failed to update cart item: {error}",
+    "remove_failed": "Failed to remove cart item: {error}"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "failed_totals": "Failed to calculate totals.",
+    "enter_address": "Please enter delivery address.",
+    "placed_success": "Order placed successfully.",
+    "failed": "Checkout failed: {error}",
+    "delivery_address": "Delivery address",
+    "governorate": "Governorate",
+    "discount_code": "Discount code",
+    "payment_method": "Payment method",
+    "select_payment_method": "Select payment method",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "shipping": "Shipping",
+    "total": "Total",
+    "placing_order": "Placing order...",
+    "confirm_order": "Confirm Order",
+    "payment_confirmation_title": "Payment Confirmation",
+    "payment_reference": "Reference: {id}",
+    "payment_provider": "Provider: {provider}",
+    "payment_status": "Status: {status}",
+    "open_payment_page": "Open payment page"
+  },
+  "governorates": {
+    "cairo": "Cairo",
+    "giza": "Giza",
+    "alexandria": "Alexandria",
+    "delta": "Delta",
+    "upper_egypt": "Upper Egypt",
+    "sinai": "Sinai"
+  },
+  "payment": {
+    "method": {
+      "card": "Credit / Debit Card (Paymob)",
+      "applePay": "Apple Pay",
+      "instapay": "Instapay",
+      "bankTransfer": "Bank Transfer",
+      "cod": "Cash on Delivery",
+      "fawry": "Fawry"
+    }
+  },
+  "drawer": {
+    "order_tracking": "Order Tracking",
+    "settings": "Settings",
+    "register_as_seller": "Register as Seller",
+    "seller_center": "Seller Center",
+    "seller_registration_status": "Seller registration, status, dashboard access",
+    "policies": "Policies",
+    "privacy_policy": "Privacy Policy",
+    "terms_conditions": "Terms & Conditions",
+    "return_policy": "Return Policy",
+    "shipping_policy": "Shipping Policy"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "arabic_rtl": "Arabic (RTL)",
+    "english_ltr": "English (LTR)",
+    "security": "Security",
+    "email_verification": "Email verification",
+    "email_verified": "Email is verified",
+    "email_not_verified": "Email is not verified",
+    "refresh": "Refresh",
+    "send_verification_email": "Send verification email",
+    "change_password": "Change password",
+    "verification_email_sent": "Verification email sent.",
+    "verification_status_refreshed": "Verification status refreshed.",
+    "no_email_found": "No email found for this account.",
+    "notification_preferences": "Notification Preferences",
+    "order_updates": "Order updates",
+    "offers_promotions": "Offers & promotions",
+    "save_preferences": "Save preferences",
+    "preferences_saved": "Preferences saved successfully.",
+    "appearance": "Appearance",
+    "theme_system": "System",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "dark_mode": "Dark Mode",
+    "dark_mode_on": "Dark mode is enabled",
+    "dark_mode_off": "Light mode is enabled",
+    "updating_theme": "Updating theme..."
+  },
+  "product": {
+    "details": "Product Details",
+    "description": "Description",
+    "no_description": "No description available.",
+    "in_stock": "In stock ({count})",
+    "out_of_stock": "Out of stock",
+    "add_to_cart": "Add to Cart",
+    "added_to_cart": "Product added to cart.",
+    "add_to_cart_failed": "Failed to add to cart: {error}",
+    "add_to_favorites": "Add to Favorites",
+    "remove_from_favorites": "Remove from Favorites",
+    "favorite_failed": "Failed to update favorite: {error}",
+    "reviews": "Reviews",
+    "no_reviews": "No reviews yet."
+  },
+  "seller": {
+    "dashboard": "Seller Dashboard",
+    "orders": "Seller Orders",
+    "sync_channels": "Sync channels",
+    "no_orders": "No seller orders yet.",
+    "waiting_approval": {
+      "title": "Waiting for Approval",
+      "description": "Your seller account is under review.",
+      "notification_info": "We will notify you in-app and by email once approved."
+    },
+    "dashboard_labels": {
+      "orders_management": "Orders Management",
+      "returns_management": "Returns Management",
+      "customer_prefix": "Customer: ",
+      "order_prefix": "Order #",
+      "no_orders": "No seller orders yet.",
+      "no_returns": "No return requests yet.",
+      "return_prefix": "Return #",
+      "return_approved": "Return approved successfully.",
+      "return_rejected": "Return rejected successfully.",
+      "return_review_failed": "Failed to review return: {error}",
+      "order_updated": "Order updated to {status}",
+      "order_update_failed": "Failed to update order: {error}",
+      "seller_decision_completed": "Seller decision completed",
+      "switch_to_customer_mode": "Switch to Customer Mode",
+      "control_center": "Seller Control Center",
+      "pending_orders": "Pending Orders",
+      "returned_orders": "Returned Orders",
+      "earnings_sales": "Earnings & Sales",
+      "products_management": "Products Management"
+    },
+    "products": {
+      "add": "Add product",
+      "edit": "Edit product",
+      "delete": "Delete product",
+      "no_products": "No products yet.",
+      "title_ar": "Arabic title",
+      "title_en": "English title",
+      "selling_price": "Selling price",
+      "stock": "Stock",
+      "image_url": "Image URL",
+      "approved": "Approved",
+      "approval_pending": "Pending review",
+      "created_pending_review": "Product submitted and pending admin review.",
+      "updated_success": "Product updated successfully.",
+      "deleted_success": "Product deleted successfully.",
+      "validation_failed": "Please complete required fields with valid values.",
+      "confirm_delete": "Delete this product permanently?",
+      "action_failed": "Failed to process product action: {error}"
+    }
+  },
+  "supplier": {
+    "dashboard": "Supplier Dashboard",
+    "operations": "Supplier Operations",
+    "metrics": {
+      "dropshipping_products": "Dropshipping Products",
+      "orders_awaiting_shipment": "Orders Awaiting Shipment",
+      "sync_jobs": "Sync Jobs"
+    },
+    "sync": {
+      "channels": "Sync channels",
+      "api_feed": "API feed sync",
+      "csv_queue": "CSV import queue",
+      "stock_updates": "Stock and shipping updates"
+    }
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "control_panel": "Admin Control Panel",
+    "metrics": {
+      "users": "Users",
+      "sellers": "Sellers",
+      "products": "Products",
+      "orders": "Orders",
+      "returns": "Returns",
+      "commissions": "Commissions"
+    },
+    "sections": {
+      "pending_sellers": "Seller Approvals (Paginated)",
+      "no_pending_sellers": "No pending seller approvals.",
+      "unnamed_seller": "Unnamed seller",
+      "load_more": "Load more",
+      "products_moderation": "Products Moderation",
+      "no_products": "No products found.",
+      "order_prefix": "Order #",
+      "seller_prefix": "Seller: ",
+      "orders_management": "Orders Management",
+      "no_orders": "No orders found.",
+      "returns_override": "Returns Override",
+      "no_returns": "No return requests found.",
+      "return_prefix": "Return #",
+      "order_customer_prefix": "Order #",
+      "customer_prefix": "Customer: ",
+      "advanced_stats": "Advanced Stats",
+      "discount_codes": "Discount Codes",
+      "offers_promotions": "Offers & Promotions",
+      "notifications_panel": "Admin Notifications"
+    },
+    "orders": {
+      "statuses": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "shipped": "Shipped",
+        "delivered": "Delivered",
+        "returned": "Returned"
+      }
+    },
+    "returns": {
+      "statuses": {
+        "pending_seller_review": "Pending Seller Review",
+        "seller_approved": "Seller Approved",
+        "seller_rejected": "Seller Rejected",
+        "admin_approved": "Admin Approved",
+        "admin_rejected": "Admin Rejected"
+      }
+    },
+    "refresh": "Refresh",
+    "stats": {
+      "total_revenue": "Total revenue",
+      "active_orders": "Active orders",
+      "sales_per_seller": "Sales per seller",
+      "revenue_by_category": "Revenue by category",
+      "uncategorized": "Uncategorized"
+    },
+    "coupons": {
+      "add": "Add coupon",
+      "none": "No discount codes found.",
+      "code": "Coupon code",
+      "type": "Type",
+      "value": "Value",
+      "min_order": "Min order",
+      "active": "Active",
+      "types": {
+        "percent": "Percent",
+        "fixed": "Fixed amount"
+      }
+    },
+    "offers": {
+      "add": "Add offer",
+      "none": "No offers found.",
+      "title_ar": "Arabic title",
+      "title_en": "English title",
+      "discount_percent": "Discount %"
+    },
+    "notifications": {
+      "mark_read": "Mark read"
+    },
+    "demo": {
+      "seed_data": "Seed demo data",
+      "seed_success": "Demo data seeded successfully.",
+      "seed_failed": "Failed to seed demo data: {error}"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "suspend": "Suspend",
+      "delete": "Delete",
+      "update_status": "Update status",
+      "tracking_number": "Tracking number",
+      "set_tracking": "Set tracking",
+      "save_tracking": "Save tracking"
+    }
+  },
+  "orders": {
+    "label": "Order #",
+    "none": "No orders yet.",
+    "status_prefix": "Status: ",
+    "tracking_prefix": "Tracking: ",
+    "return_prefix": "Return: ",
+    "request_return": "Request Return",
+    "reason": "Reason",
+    "details_optional": "Details (optional)",
+    "confirm_return_request": "I confirm this return request.",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "return_only_delivered": "Return can only be requested for delivered orders.",
+    "return_exists": "A return request already exists for this order.",
+    "return_submitted": "Return request submitted successfully.",
+    "statuses": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "returned": "Returned",
+      "confirmed": "Confirmed",
+      "sent_to_vendor": "Sent to vendor"
+    },
+    "return_reasons": {
+      "damaged_item": "Damaged item",
+      "wrong_item": "Wrong item",
+      "missing_parts": "Missing parts",
+      "not_as_described": "Not as described",
+      "other": "Other"
+    }
+  },
+  "seller_center": {
+    "steps_info": "All seller onboarding steps are available from this Seller Center section in the side menu.",
+    "submitted_success": "Submitted successfully, waiting for admin approval.",
+    "submission_failed": "Submission failed: {error}",
+    "field_required": "{field} is required",
+    "optional": "Optional",
+    "supplier_managed": "Supplier accounts are managed in Supplier Dashboard.",
+    "status": {
+      "approved": "Approved",
+      "pending": "Pending Approval"
+    },
+    "account_status": "Account status",
+    "open_dashboard": "Open Seller Dashboard",
+    "seller_orders": "Seller Orders",
+    "form": {
+      "title": "Register as Seller",
+      "merchant_name": "Merchant name",
+      "store_name": "Store name",
+      "owner_name": "Owner name",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "id_document": "ID document URL",
+      "commercial_registration": "Commercial registration URL",
+      "tax_card": "Tax card URL",
+      "submitting": "Submitting...",
+      "submit_button": "Submit for approval"
+    },
+    "control": {
+      "title": "Seller Center",
+      "seller_orders": "Seller Orders",
+      "returns_refunds": "Returns & Refunds",
+      "earnings_commission": "Earnings & Commission",
+      "admin_quick_access": "Admin quick access",
+      "open_admin_dashboard": "Open Admin Dashboard"
+    },
+    "upload_failed": "Upload failed: {error}",
+    "file_read_failed": "Unable to read selected file.",
+    "national_id_required": "National ID document is required.",
+    "document_uploaded": "Document uploaded",
+    "no_document_selected": "No document selected",
+    "required_documents": "Required Documents",
+    "optional_documents": "Optional Documents"
+  },
+  "order_tracking": {
+    "title": "Order Tracking",
+    "none": "No orders to track."
+  },
+  "profile": {
+    "edit": "Edit Profile",
+    "switch_to_seller": "Switch to Seller Mode",
+    "account_status": "Account status"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "none": "No notifications yet.",
+    "types": {
+      "seller_approved": {
+        "title": "Seller approved",
+        "body": "Your seller account has been approved."
+      },
+      "seller_suspended": {
+        "title": "Seller suspended",
+        "body": "Your seller account has been suspended."
+      },
+      "seller_registration": {
+        "title": "New seller registration",
+        "body": "A new seller registration request was submitted."
+      },
+      "new_order": {
+        "title": "New order",
+        "body": "A new order has been created."
+      },
+      "promotion": {
+        "title": "New promotion",
+        "body": "A new offer is available now."
+      },
+      "order_status": {
+        "title": "Order status updated",
+        "body": "Order #{id} status has changed."
+      },
+      "new_return": {
+        "title": "New return request",
+        "body": "A return request was submitted."
+      },
+      "return_requested": {
+        "title": "Return requested",
+        "body": "Return request #{id} is now pending review."
+      },
+      "return_approved": {
+        "title": "Return approved",
+        "body": "Return request #{id} was approved."
+      },
+      "return_rejected": {
+        "title": "Return rejected",
+        "body": "Return request #{id} was rejected."
+      },
+      "return_status": {
+        "title": "Return status updated",
+        "body": "Return request #{id} status has changed."
+      },
+      "return_admin_override": {
+        "title": "Admin override",
+        "body": "Admin updated return request #{id}."
+      }
+    }
+  },
+  "favorites": {
+    "none": "No favorites yet.",
+    "removed": "Removed from favorites."
+  },
+  "static_pages": {
+    "no_content": "No content has been published yet."
+  },
+  "errors": {
+    "no_data": "No data available.",
+    "network": "A network error occurred."
+  },
+  "roles": {
+    "customer": "Customer",
+    "seller": "Seller",
+    "supplier": "Supplier",
+    "admin": "Admin",
+    "guest": "Guest"
+  },
+  "common": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "phone": "Phone",
+    "phone_number": "Phone Number",
+    "settings": "Settings",
+    "order_tracking": "Order Tracking",
+    "currency_egp": "EGP",
+    "notification": "Notification",
+    "product": "Product",
+    "item": "Item",
+    "user": "User",
+    "login_required": "Please login first.",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "ok": "OK"
+  },
+  "catalog": {
+    "empty": "No products match current filters.",
+    "filter": {
+      "category": "Category",
+      "all_categories": "All categories",
+      "new_arrivals": "New arrivals",
+      "discount_only": "Discount only",
+      "best_sellers": "Best sellers",
+      "rating_4_plus": "Rating 4+",
+      "price_range": "Price range"
+    },
+    "sort": {
+      "label": "Sort",
+      "newest": "Newest",
+      "price_low_high": "Price: Low to High",
+      "price_high_low": "Price: High to Low",
+      "rating": "Top Rated",
+      "best_sellers": "Best Sellers"
+    }
+  }
+}

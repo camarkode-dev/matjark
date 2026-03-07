@@ -23,6 +23,14 @@ class RoleGuard extends StatelessWidget {
     final canAccessAsAdmin =
         auth.isAdmin && allowedRoles.contains(UserRole.admin);
 
+    if (auth.isProfileLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     if (!auth.isSignedIn || user == null) {
       return const LoginScreen();
     }

@@ -44,7 +44,10 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
-      body: _pages[_selected],
+      body: IndexedStack(
+        index: _selected,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppTheme.panel(context),

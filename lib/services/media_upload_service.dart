@@ -7,11 +7,12 @@ class MediaUploadService {
 
   Future<String> uploadProductImage({
     required String ownerId,
+    String? productId,
     required String fileName,
     required Uint8List bytes,
   }) async {
     return _uploadImage(
-      folder: 'product_images',
+      folder: 'product_images/$ownerId/${productId ?? 'drafts'}',
       ownerId: ownerId,
       fileName: fileName,
       bytes: bytes,
@@ -42,6 +43,32 @@ class MediaUploadService {
     );
   }
 
+  Future<String> uploadPaymentReceipt({
+    required String ownerId,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    return _uploadImage(
+      folder: 'payment_receipts/$ownerId/drafts',
+      ownerId: ownerId,
+      fileName: fileName,
+      bytes: bytes,
+    );
+  }
+
+  Future<String> uploadReturnEvidence({
+    required String ownerId,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    return _uploadImage(
+      folder: 'return_request_images/$ownerId/drafts',
+      ownerId: ownerId,
+      fileName: fileName,
+      bytes: bytes,
+    );
+  }
+
   Future<String> _uploadImage({
     required String folder,
     required String ownerId,
@@ -50,7 +77,7 @@ class MediaUploadService {
   }) async {
     final sanitizedName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final path =
-        '$folder/$ownerId/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
+        '$folder/${DateTime.now().millisecondsSinceEpoch}_$sanitizedName';
     final ref = _storage.ref(path);
     final snapshot = await ref.putData(
       bytes,

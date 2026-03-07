@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 
 import '../core/theme.dart';
 import '../models/category.dart';
+import 'remote_image.dart';
 
 class CategoryCard extends StatelessWidget {
   final Category category;
@@ -36,13 +37,11 @@ class CategoryCard extends StatelessWidget {
                     topRight: Radius.circular(AppTheme.radiusCard),
                   ),
                   child: category.imageUrl != null
-                      ? Image.network(
-                          category.imageUrl!,
+                      ? RemoteImage(
+                          imageUrl: category.imageUrl!,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _fallbackIcon();
-                          },
+                          errorWidget: _fallbackIcon(),
                         )
                       : _fallbackIcon(),
                 ),

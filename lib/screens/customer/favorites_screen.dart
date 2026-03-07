@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/adaptive_app_bar_leading.dart';
 import '../../widgets/marketplace_drawer.dart';
+import '../../widgets/remote_image.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -28,7 +30,10 @@ class FavoritesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.scaffold(context),
       drawer: const MarketplaceDrawer(),
-      appBar: AppBar(title: Text('nav.favorites'.tr())),
+      appBar: AppBar(
+        leading: const AdaptiveAppBarLeading(hasDrawer: true),
+        title: Text('nav.favorites'.tr()),
+      ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: favoritesStream,
         builder: (context, snapshot) {
@@ -87,10 +92,10 @@ class FavoritesScreen extends StatelessWidget {
                           color: AppTheme.panelSoft(context),
                           child: image.isEmpty
                               ? const Icon(Icons.favorite_outline)
-                              : Image.network(
-                                  image,
+                              : RemoteImage(
+                                  imageUrl: image,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorWidget:
                                       const Icon(Icons.broken_image_outlined),
                                 ),
                         ),

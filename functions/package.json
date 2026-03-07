@@ -1,10 +1,20 @@
 {
-  "name": "matjark-functions",
-  "dependencies": {
-    "firebase-admin": "^11.10.1",
-    "firebase-functions": "^4.4.0"
-  },
+  "name": "marketplace-functions",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
   "engines": {
     "node": "20"
+  },
+  "scripts": {
+    "build": "node --check src/index.js",
+    "lint": "npm run build",
+    "serve": "firebase emulators:start --only auth,firestore,functions,hosting,storage",
+    "deploy": "firebase deploy --only functions,hosting,firestore:rules,firestore:indexes,storage"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "firebase-admin": "^13.7.0",
+    "firebase-functions": "^7.1.0"
   }
 }

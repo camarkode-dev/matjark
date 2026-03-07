@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +7,7 @@ import '../core/theme.dart';
 import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../screens/customer/product_details_screen.dart';
+import 'remote_image.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -104,7 +104,7 @@ class ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 1.2,
+              aspectRatio: 1.0,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.only(
@@ -118,13 +118,16 @@ class ProductCard extends StatelessWidget {
                     product.images.isNotEmpty
                         ? Hero(
                             tag: 'product_image_${product.id}',
-                            child: CachedNetworkImage(
+                            child: RemoteImage(
                               imageUrl: product.images.first,
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              fadeInDuration: const Duration(milliseconds: 120),
-                              placeholder: (_, placeholderUrl) => Container(
+                              errorWidget: Icon(
+                                Icons.broken_image_outlined,
+                                color: AppTheme.secondaryText(context),
+                              ),
+                              placeholder: Container(
                                 decoration: BoxDecoration(
                                   color: AppTheme.panelSoft(context),
                                   borderRadius: BorderRadius.circular(
@@ -140,10 +143,6 @@ class ProductCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              ),
-                              errorWidget: (_, imageUrl, error) => Icon(
-                                Icons.broken_image_outlined,
-                                color: AppTheme.secondaryText(context),
                               ),
                             ),
                           )
@@ -248,11 +247,12 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Text(
                     productTitle,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                       fontWeight: FontWeight.w700,
+                      height: 1.25,
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacing8),
@@ -265,15 +265,17 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppTheme.spacing8),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        '${product.sellingPrice.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
+                      Expanded(
+                        child: Text(
+                          '${product.sellingPrice.toStringAsFixed(2)} ${'common.currency_egp'.tr()}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
                       ),
                       if (hasDiscount)
                         Text(

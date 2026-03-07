@@ -47,9 +47,21 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     if (kIsWeb) {
-      await firebase_auth.FirebaseAuth.instance.setPersistence(
-        firebase_auth.Persistence.SESSION,
-      );
+      _validateFirebaseWebConfig();
+      final auth = firebase_auth.FirebaseAuth.instance;
+      await auth.setPersistence(firebase_auth.Persistence.LOCAL);
+      try {
+        await auth.initializeRecaptchaConfig();
+      } catch (error) {
+        debugPrint(
+          '[Firebase Auth] reCAPTCHA config warmup skipped. Confirm the web app domain is authorized and reCAPTCHA is enabled in Firebase Authentication. Details: $error',
+        );
+      }
+      try {
+        await auth.getRedirectResult();
+      } catch (error) {
+        debugPrint('[Firebase Auth] redirect result check skipped: $error');
+      }
     }
     firebaseInitialized = true;
     debugPrint('[Firebase] initialized successfully.');
@@ -70,6 +82,20 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
+}
+
+void _validateFirebaseWebConfig() {
+  const options = DefaultFirebaseOptions.web;
+  final missing = <String>[];
+  if (options.apiKey.isEmpty) missing.add('apiKey');
+  if ((options.authDomain ?? '').isEmpty) missing.add('authDomain');
+  if (options.projectId.isEmpty) missing.add('projectId');
+  if (options.appId.isEmpty) missing.add('appId');
+  if (missing.isNotEmpty) {
+    debugPrint(
+      '[Firebase Web Config] Missing required fields: ${missing.join(', ')}',
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
